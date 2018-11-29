@@ -1,2 +1,2 @@
 # Machine-Learning
-Applied Machine learning on different datasets using Python and R
+Applied Machine learning techniques on different datasets from in Python and R
