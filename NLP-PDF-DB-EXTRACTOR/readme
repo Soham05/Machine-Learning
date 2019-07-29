@@ -1,1 +1,11 @@
+The following python code extracts data from a pdf file and converts in SQL Database. The purpose for this project was to convert free-form 
+textual data to a structured format. 
+
+Most of the words realetd to industry were masked or removed for privacy concerns.
+
+Technology used:
+Language: Python, python regex
+DB: SQL Server
+Libraries: PDFminer, PyPDF2, NLTK, spacy
+Env: Jupyter notebook
 
