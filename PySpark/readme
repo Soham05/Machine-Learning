@@ -1,1 +1,23 @@
+Multicalss classification using PySpark(Random Forest)
 
+This project for used to productionalized the existing python multiclass classification model on Spark env. using PySpark.
+Data is masked for privacy concerns
+
+Approach followed is as folows:
+1: null treatment
+2: dropped null columns that had more than 70% na data
+3: dropped single value columns
+4: string to float conversion for MLLIB pipeline
+5: removed highly correlated columns
+6: NA imputaion
+7: Machine learning pipleine:
+    7a: String Indexer
+    7b: OneHotEncoder
+    7c: Vector Assembler
+    7d: Random forest multiclass classification
+
+8: prediction
+9: Validation using confusion matrix
+
+Trained on 100m+ records
+Validated on 25m+ records
