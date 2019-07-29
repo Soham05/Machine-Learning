@@ -164,64 +164,44 @@ df['theinfo'] = df['condition'].str.contains('thp',regex=True)
 df['manual_step'] = df['condition'].str.contains('Manual',regex = True)
 
 
-# In[20]:
 
-
+# stopwards dictonary manually created
 stopwords = ['with','therapies','tried','other','equal','to','Does','the','a','an','of','have','or','for',
              'is','Is''as','in','last','malignant','days','less','than','total','supply','client','agent','hist',
              'dig','other','730','30','60','5','3','Has','(<)', '14','received','thp','past','(â‰¤)','365',
             'prescriber','use','higher','strength','requested','Manual', 'step', 'â€“','provided',',']
 
 
-# In[21]:
+
 
 
 df['dl'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
 df.loc[df.disinfo == False,'dl'] = 'null'
 
-
-# In[22]:
-
-
 df['dh_list'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
 df.loc[df.dh == False,'dh_list'] = 'null'
-
-
-# In[23]:
 
 
 df['tl'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
 df.loc[df.theinfo == False,'tl'] = 'null'
 
 
-# In[24]:
-
-
 df['manual_step_list'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
 df.loc[df.manual_step == False,'manual_step_list'] = 'null'
-
-
-# In[25]:
-
 
 df.to_csv('workflow.csv')
 
 
 # ### diss List table with corresponding steps
 
-# In[26]:
 
 
 dis_df = df.loc[df['disinfo'] == True]
 
-
-# In[27]:
-
-
 dis_df.columns
 
 
-# In[28]:
+
 
 
 dis_df.drop([ 'condition','yes', 'no', 'if_yes', 'if_no', 'age',
@@ -232,7 +212,7 @@ dis_df.drop([ 'condition','yes', 'no', 'if_yes', 'if_no', 'age',
        'tl', 'manual_step_list'],axis=1,inplace=True)
 
 
-# In[29]:
+
 
 
 dis_df = dis_df.dl.apply(pd.Series)     
@@ -243,31 +223,15 @@ dis_df = dis_df.dl.apply(pd.Series)
 .dropna()
 
 
-# In[30]:
-
 
 dis_df = dis_df.loc[(dis_df.dl != False) & (dis_df.dl != 'null')]
 
 
-# In[31]:
-
-
 dis_df.index = dis_df.index + 1
-
-
-# In[32]:
-
 
 dis_df.to_csv('diss.csv')
 
-
-# In[33]:
-
-
 drg_hist_df = df.loc[df['dh'] == True]
-
-
-# In[34]:
 
 
 drg_hist_df.drop([ 'condition', 'yes', 'no', 'if_yes', 'if_no', 'age',
@@ -278,8 +242,6 @@ drg_hist_df.drop([ 'condition', 'yes', 'no', 'if_yes', 'if_no', 'age',
        'tl', 'manual_step_list'],axis=1,inplace=True)
 
 
-# In[35]:
-
 
 drg_hist_df = drg_hist_df.dh_list.apply(pd.Series)    
 .merge(drg_hist_df, left_index = True, right_index = True)    
@@ -288,20 +250,9 @@ drg_hist_df = drg_hist_df.dh_list.apply(pd.Series)
 .drop("variable", axis = 1)     
 .dropna()
 
-
-# In[36]:
-
-
 drg_hist_df = drg_hist_df.loc[(drg_hist_df.dh_list != False) & (drg_hist_df.dh_list != 'null')]
 
-
-# In[37]:
-
-
 drg_hist_df.index = drg_hist_df.index + 1
-
-
-# In[38]:
 
 
 drg_hist_df.to_csv('drg_histroy.csv')
@@ -309,13 +260,10 @@ drg_hist_df.to_csv('drg_histroy.csv')
 
 # ### thp List table with corresponding steps
 
-# In[39]:
+
 
 
 tl_df = df.loc[df['theinfo'] == True]
-
-
-# In[40]:
 
 tl_df.drop([ 'condition', 'yes', 'no', 'if_yes', 'if_no', 'age',
        'contains_age', 'no_of_days', 'contains_past_days_info', 'mg_per_day',
@@ -324,8 +272,6 @@ tl_df.drop([ 'condition', 'yes', 'no', 'if_yes', 'if_no', 'age',
        'theinfo', 'manual_step', 'dl', 'dh_list',
      'manual_step_list'],axis=1,inplace=True)
 
-
-# In[41]:
 
 
 tl_df = tl_df.tl.apply(pd.Series)    
@@ -336,42 +282,20 @@ tl_df = tl_df.tl.apply(pd.Series)
 .dropna()
 
 
-# In[42]:
-
-
 tl_df = tl_df.loc[(tl_df.tl != False) & (tl_df.tl != 'null')]
 
-
-# In[43]:
-
-
 tl_df.index = tl_df.index + 1
-
-
-# In[44]:
-
 
 tl_df.to_csv('tl.csv')
 
 
 # ## Manual Steps
 
-# In[45]:
-
-
 manual_step_df = df.loc[df['manual_step'] == True]
-
-
-# In[46]:
-
 
 manual_step_df.drop(['condition', 'yes', 'no', 'if_yes', 'if_no', 'age', 'contains_age',
        'no_of_days', 'contains_past_days_info', 'mg_per_day',
        'contains_dosage', 'disinfo','dh','dl','dh_list','theinfo','manual_step'],axis=1,inplace=True)
-
-
-# In[47]:
-
 
 manual_step_df = manual_step_df.manual_step_list.apply(pd.Series)    
 .merge(manual_step_df, left_index = True, right_index = True)    
@@ -381,26 +305,11 @@ manual_step_df = manual_step_df.manual_step_list.apply(pd.Series)
 .dropna()
 
 
-# In[48]:
-
-
 manual_step_df = manual_step_df.loc[(manual_step_df.manual_step_list != False) & (manual_step_df.manual_step_list != 'null')]
-
-
-# In[49]:
-
 
 manual_step_df.index = manual_step_df.index + 1
 
-
-# In[50]:
-
-
 manual_step_df.to_csv('manual_step_df.csv')
-
-
-# In[51]:
-
 
 print("Extraction process complete")
 
