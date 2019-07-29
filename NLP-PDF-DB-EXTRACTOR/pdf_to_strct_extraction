@@ -1,0 +1,410 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # PDF to DB Extractor Engine code
+# Created by : Soham Bhalerao (6/28/2019)
+
+import PyPDF2
+import collections
+import re
+import pandas as pd
+import numpy as np
+pd.options.display.max_colwidth = 200
+
+
+# In[7]:
+
+
+## PDF locations
+PDF_PATH_ = ['k_abcd_sample.pdf']
+
+##Pages
+pages = [3,19]
+number_of_questions = [6,8]
+id = ['KT','KIN']
+
+
+# ## Extract Text
+
+# In[3]:
+
+
+text = []
+def extract_text(PDF_PATH_,pages):
+    for pdf in PDF_PATH_:
+        pdf_file = open(pdf,'rb')
+        read_pdf = PyPDF2.PdfFileReader(pdf_file)
+        number_of_pages = read_pdf.getNumPages()
+        c = collections.Counter(range(number_of_pages))
+        page_content = []
+        for i in c:
+            if i in pages:
+                page = read_pdf.getPage(i)
+                page_content.append(page.extractText())
+                #page_content = page_content.encode('utf-8')
+        
+        #Strip spaces and split on bullet points
+        for i in range(len(page_content)):
+            text.append(re.split('[0-9]+\.',page_content[i].replace('\n','').replace('  ','')))
+        
+        text[:] = [item for sublist in text for item in sublist]
+        return text
+    
+text = extract_text(PDF_PATH_,pages)
+
+import pandas as pd
+import numpy as np
+pd.options.display.max_colwidth = 200
+
+
+## merging dataframes,reseting indexes and adding new columns for indexing
+
+df_1 = pd.DataFrame(np.array(text[1:]),columns=['condition'])
+df_1.index = df_1.index + 1
+df_1.index.name = 'Step'
+df_1.reset_index(level=0, inplace=True)
+df_1['drug_id'] = 'KT'
+
+
+
+df_2 = pd.DataFrame(np.array(text_in[1:]),columns=['condition'])
+df_2.index = df_2.index + 1
+df_2.index.name = 'Step'
+df_2.reset_index(level=0, inplace=True)
+df_2['drug_id'] = 'KIN'
+
+
+df_3 = pd.DataFrame(np.array(text_old[1:]),columns=['condition'])
+df_3.index = df_3.index + 1
+df_3.index.name = 'Step'
+df_3.reset_index(level=0, inplace=True)
+df_3['drug_id'] = 'OLD'
+
+
+df_4 = pd.DataFrame(np.array(text_ohd[1:]),columns=['condition'])
+df_4.index = df_4.index + 1
+df_4.index.name = 'Step'
+df_4.reset_index(level=0, inplace=True)
+df_4['drug_id'] = 'OHD'
+
+
+df = df_1.append([df_2,df_3,df_4])
+
+
+
+## texting mining using Regular expressions 
+
+a = df['condition'].str.split("?",n=1,expand=True) 
+df['y_n'] = a[1]
+df['condition'] = a[0]
+
+# Split yes and no in two different colums
+
+b = df['y_n'].str.split("\[ ]",n=2,expand=True)
+df['yes'] = b[1]
+df['no'] = b[2]
+
+df.drop('y_n',inplace=True,axis=1) 
+
+#### create columns if_yes and if_no
+yes = df['yes'].str.split("Yes",n=1,expand=True)
+df['if_yes'] = yes[1]
+no = df['no'].str.split("No",n=1,expand=True)
+df['if_no'] = no[1]
+
+
+df.to_csv('Questions.csv')
+print("Extraction process triggered")
+
+
+
+#### Check if the question is related to age, if yes save age
+df['age'] = df['condition'].str.extract('(\d+)')
+df['contains_age'] = df['condition'].str.contains('years of age',regex=True)
+df.loc[df.contains_age == False,'age'] = 'null'
+
+
+
+#### Check if the question is related to past days, if yes save number of days
+df['no_of_days'] = df['condition'].str.extract('(\d+)')
+df['contains_past_days_info'] = df['condition'].str.contains('days',regex=True)
+df.loc[df.contains_past_days_info == False,'no_of_days'] = 'null'
+
+
+
+#### Check if the question is related to dosage, if yes save dosage amount
+df['mg_per_day'] = df['condition'].str.extract('(\d+)')
+df['contains_dosage'] = df['condition'].str.contains('dose',regex=True)
+df.loc[df.contains_dosage == False,'mg_per_day'] = 'null'
+
+
+
+#### Check if the question is related to dosage in units per day, if yes save dosage amount
+df['units_per_day'] = df['condition'].str.extract('(\d+)')
+df['contains_dosage_units'] = df['condition'].str.contains('units/day',regex=True)
+df.loc[df.contains_dosage_units == False,'units_per_day'] = 'null'
+
+
+
+#### Check if question is realted to inj, if yes save 
+df['contains_inj'] = df['condition'].str.contains('inj',regex=True)
+
+### Check if question is realted to nas, if yes save
+df['contains_nas'] = df['condition'].str.contains('nas',regex=True)
+
+
+# ### NLP techniques to further structure the data
+
+
+
+## Creating columns for hist of diss and drg
+df['dh'] = df['condition'].str.contains('hist',regex=True)
+df['disinfo'] = df['condition'].str.contains('dig',regex=True)
+df['theinfo'] = df['condition'].str.contains('thp',regex=True)
+df['manual_step'] = df['condition'].str.contains('Manual',regex = True)
+
+
+# In[20]:
+
+
+stopwords = ['with','therapies','tried','other','equal','to','Does','the','a','an','of','have','or','for',
+             'is','Is''as','in','last','malignant','days','less','than','total','supply','client','agent','hist',
+             'dig','other','730','30','60','5','3','Has','(<)', '14','received','thp','past','(â‰¤)','365',
+            'prescriber','use','higher','strength','requested','Manual', 'step', 'â€“','provided',',']
+
+
+# In[21]:
+
+
+df['dl'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
+df.loc[df.disinfo == False,'dl'] = 'null'
+
+
+# In[22]:
+
+
+df['dh_list'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
+df.loc[df.dh == False,'dh_list'] = 'null'
+
+
+# In[23]:
+
+
+df['tl'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
+df.loc[df.theinfo == False,'tl'] = 'null'
+
+
+# In[24]:
+
+
+df['manual_step_list'] = df['condition'].apply(lambda x: [item for item in str(x).split() if item not in stopwords])
+df.loc[df.manual_step == False,'manual_step_list'] = 'null'
+
+
+# In[25]:
+
+
+df.to_csv('workflow.csv')
+
+
+# ### diss List table with corresponding steps
+
+# In[26]:
+
+
+dis_df = df.loc[df['disinfo'] == True]
+
+
+# In[27]:
+
+
+dis_df.columns
+
+
+# In[28]:
+
+
+dis_df.drop([ 'condition','yes', 'no', 'if_yes', 'if_no', 'age',
+       'contains_age', 'no_of_days', 'contains_past_days_info', 'mg_per_day',
+       'contains_dosage', 'units_per_day', 'contains_dosage_units',
+       'contains_inj', 'contains_nas', 'dh', 'disinfo',
+       'theinfo', 'manual_step', 'dh_list',
+       'tl', 'manual_step_list'],axis=1,inplace=True)
+
+
+# In[29]:
+
+
+dis_df = dis_df.dl.apply(pd.Series)     
+.merge(dis_df, left_index = True, right_index = True)    
+.drop(["dl"], axis = 1)   
+.melt(id_vars = ['drug_id','Step'],value_name = "dl")    
+.drop("variable", axis = 1)     
+.dropna()
+
+
+# In[30]:
+
+
+dis_df = dis_df.loc[(dis_df.dl != False) & (dis_df.dl != 'null')]
+
+
+# In[31]:
+
+
+dis_df.index = dis_df.index + 1
+
+
+# In[32]:
+
+
+dis_df.to_csv('diss.csv')
+
+
+# In[33]:
+
+
+drg_hist_df = df.loc[df['dh'] == True]
+
+
+# In[34]:
+
+
+drg_hist_df.drop([ 'condition', 'yes', 'no', 'if_yes', 'if_no', 'age',
+       'contains_age', 'no_of_days', 'contains_past_days_info', 'mg_per_day',
+       'contains_dosage', 'units_per_day', 'contains_dosage_units',
+       'contains_inj', 'contains_nas', 'dh', 'disinfo',
+       'theinfo', 'manual_step', 'dl',
+       'tl', 'manual_step_list'],axis=1,inplace=True)
+
+
+# In[35]:
+
+
+drg_hist_df = drg_hist_df.dh_list.apply(pd.Series)    
+.merge(drg_hist_df, left_index = True, right_index = True)    
+.drop(["dh_list"], axis = 1)    
+.melt(id_vars = ['drug_id','Step'],value_name = "dh_list")    
+.drop("variable", axis = 1)     
+.dropna()
+
+
+# In[36]:
+
+
+drg_hist_df = drg_hist_df.loc[(drg_hist_df.dh_list != False) & (drg_hist_df.dh_list != 'null')]
+
+
+# In[37]:
+
+
+drg_hist_df.index = drg_hist_df.index + 1
+
+
+# In[38]:
+
+
+drg_hist_df.to_csv('drg_histroy.csv')
+
+
+# ### thp List table with corresponding steps
+
+# In[39]:
+
+
+tl_df = df.loc[df['theinfo'] == True]
+
+
+# In[40]:
+
+tl_df.drop([ 'condition', 'yes', 'no', 'if_yes', 'if_no', 'age',
+       'contains_age', 'no_of_days', 'contains_past_days_info', 'mg_per_day',
+       'contains_dosage', 'units_per_day', 'contains_dosage_units',
+       'contains_inj', 'contains_nas', 'dh', 'disinfo',
+       'theinfo', 'manual_step', 'dl', 'dh_list',
+     'manual_step_list'],axis=1,inplace=True)
+
+
+# In[41]:
+
+
+tl_df = tl_df.tl.apply(pd.Series)    
+.merge(tl_df, left_index = True, right_index = True)    
+.drop(["tl"], axis = 1)    
+.melt(id_vars = ['drug_id','Step'],value_name = "tl")    
+.drop("variable", axis = 1)    
+.dropna()
+
+
+# In[42]:
+
+
+tl_df = tl_df.loc[(tl_df.tl != False) & (tl_df.tl != 'null')]
+
+
+# In[43]:
+
+
+tl_df.index = tl_df.index + 1
+
+
+# In[44]:
+
+
+tl_df.to_csv('tl.csv')
+
+
+# ## Manual Steps
+
+# In[45]:
+
+
+manual_step_df = df.loc[df['manual_step'] == True]
+
+
+# In[46]:
+
+
+manual_step_df.drop(['condition', 'yes', 'no', 'if_yes', 'if_no', 'age', 'contains_age',
+       'no_of_days', 'contains_past_days_info', 'mg_per_day',
+       'contains_dosage', 'disinfo','dh','dl','dh_list','theinfo','manual_step'],axis=1,inplace=True)
+
+
+# In[47]:
+
+
+manual_step_df = manual_step_df.manual_step_list.apply(pd.Series)    
+.merge(manual_step_df, left_index = True, right_index = True)    
+.drop(["manual_step_list"], axis = 1)    
+.melt(id_vars = ['drug_id','Step'],value_name = "manual_step_list")    
+.drop("variable", axis = 1)     
+.dropna()
+
+
+# In[48]:
+
+
+manual_step_df = manual_step_df.loc[(manual_step_df.manual_step_list != False) & (manual_step_df.manual_step_list != 'null')]
+
+
+# In[49]:
+
+
+manual_step_df.index = manual_step_df.index + 1
+
+
+# In[50]:
+
+
+manual_step_df.to_csv('manual_step_df.csv')
+
+
+# In[51]:
+
+
+print("Extraction process complete")
+
+
+
+
+
