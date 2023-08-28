@@ -1,0 +1,71 @@
+This document provides reject code logic for MEDICARE line of business for following reject code scenarios. The purpose of this tool is to validate clinical logic against adjudicated claims and verify whether rejected/paid claims are correctly rejected/paid or not. 
+
+Actual Status	Predicted Status (CCS2.0 recommended)	Scenario
+PAID	PAID	MATCH
+PAID	REJECT	NO MATCH
+REJECT	PAID	NO MATCH
+REJECT	REJECT	MATCH
+
+
+
+claims_df: Claim_Status, REJECT1, REJECT2, REJECT3,Quantity_Dispensed,Days_Supply, Fill_Number, Product_Id/NDC, GPI, Prior_Auth_Reason_Code, Prior_Auth_Number, Carrier_ID, Account_Id, Group_Id, Multi_Source_Ind, RX/OTC_Indicator, Smart_PA_Indicator, Med_D_Drug_Indicator	, Formulary_Tier_Code, TF_PAMC_Nbr
+
+medd_req_df: FORMULARY_ID,GPI,NDC, Med_Name, Strength, Strength_UOM, MULTISOURCEFLAG, FORMULARY_TIER, PA_REQUIRED, PA_Group_NAME, QUANTITY_LIMIT_FLAG, QUANTITY_MAX,QUANTITY_TIME,USER_FIELD_7,USER_FIELD_8, USER_FIELD_9,	USER_FIELD_10, STEP_THERAPY, STEP_THERAPY_TOTALGROUPS,STEP_THERAPY_GROUPNAME,STEP_THERAPY_STEP, STEP_THERAPY_GROUPNAME1,STEP_THERAPY_STEP1,	RX_OTC
+
+
+
+
+Non Formulary	R70 MR / R70 A6 569 ( Part B Non-Formulary products)												
+For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "70" + "Reject2" = "MR"													
+	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" formulary ["GPI" + "MONY" + "RX/OTC"]												
+	If GPI compare = "Match" then validate the "Formulary_Tier" value in "requirement file" in Med D file												
+		If "Formulary_Tier" in "requirement file" not equal to 11 then Flag as Mismatch											
+		If  "Formulary_Tier" = "11" in "requirement file" then Flag as Match											
+	If GPI compare = "Not Match" then Flag as Match												
+													
+													
+PA1	R75												
+For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "75" 													
+	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" ["GPI" + "MONY" + "RX/OTC"] + "PA_Required" field (MedD requirement file)												
+			If GPI compare = "Match" + "PA_Required = 0" then Flag as Mismatch										
+			If GPI compare = "Match" + "PA_Required = "1" + "PA_Group_NAME" = "HRM Age" OR "HRM Age AU" then check member age (date of birth)										
+				If member age = OR > 65 then Flag as Match									
+				If member age < 65 then Flag as Mismatch									
+			If GPI compare = "Match" + "PA_Required = "1" + "PA_Group_NAME" = blank or null value then Flag as Match										
+			If GPI compare = "Match" + "PA_Required = "2 or 3" then Flag as Mismatch										
+	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
+													
+PA2	R75/76												
+For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "75" + "Reject2" = "76"													
+	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" ["GPI" + "MONY" + "RX/OTC"] + "PA_Required" field (MedD requirement file)												
+			If GPI compare = "Match" + "PA_Required = 0" then Flag as Mismatch										
+			If GPI compare = "Match" + "PA_Required = "1 OR 3" then claim Flag as Mismatch										
+			If GPI compare = "Match" + "PA_Required = "2" then claim Flag as Match										
+	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
+													
+PA3	R75/A6/569												
+For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "75" + "Reject2" = "A6" + "Reject3" = "569"													
+	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" ["GPI" + "MONY" + "RX/OTC"] + "PA_Required" field (MedD requirement file)												
+			If GPI compare = "Match" + "PA_Required = 0" then Flag as Mismatch										
+			If GPI compare = "Match" + "PA_Required = "3" then Flag as Match										
+			If GPI compare = "Match" + "PA_Required = "1 or 2" then Flag as Mismatch										
+	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
+													
+QL	R76												
+For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "76" 													
+Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"] + bring in ["Quantity_Dispensed" and "Days_Supply" field value from "claim file"] compare data to "requirements file"  ["GPI" + "MONY" + "RX/OTC"] + "Quantity_Limit_Flag" + Quantity_Max" + "Quantity_Time" (Med D file)													
+	If GPI compare = "Match" +  "Quantity_Limit_Flag" > "0" then compare "claim file" "Quantity_Dispensed" + "Days_Supply" and "requirement file" "Quantity_Max" + "Quantity_Time"												
+		If "Quantity_Dispensed" > "Quantity_Max" OR "Days_Supply" > "Quantity_Time" then Flag as Match											
+		If "Quantity_Dispensed" < "Quantity_Max" AND "Days_Supply" < "Quantity_Time" then Flag as Mismatch											
+	If GPI compare = "Match" +  "Quantity_Limit_Flag" = "0" then Flag as Mismatch												
+	For Med D If GPI compare = "Not Match" then Flag as Mismatch												
+													
+Step Therapy	R608												
+For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "608" 													
+Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"] + bring in ["CT Status" field value from "claim file"] compare data to "requirements file"  ["GPI" + "MONY" + "RX/OTC"] + "Step_Therapy" (MedD)													
+	If GPI compare = "Match" +  "Step_Therapy" = "2"  + "CT Status" = "P" then Flag as Mismatch												
+	If GPI compare = "Match" + "Step_Therapy" = "2" + "CT Status" "not"  = "P" then claim should not be paying - Flag as Match												
+	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
+
+
+Provide psuedo code in Pyspark with commenets and for each reject code. 
