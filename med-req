@@ -1,71 +1,65 @@
-This document provides reject code logic for MEDICARE line of business for following reject code scenarios. The purpose of this tool is to validate clinical logic against adjudicated claims and verify whether rejected/paid claims are correctly rejected/paid or not. 
+Clincal Claims Surevillance 2.0:
 
-Actual Status	Predicted Status (CCS2.0 recommended)	Scenario
-PAID	PAID	MATCH
-PAID	REJECT	NO MATCH
-REJECT	PAID	NO MATCH
-REJECT	REJECT	MATCH
+Introduction:
+Clinical Claims Surveillance 2.0 (CCS 2.0) represents a quantum leap in near real-time claims surveillance. A paradigm shift from the antiquated Version 1, which relied on on-premises infrastructure coupled with outmoded technologies, CCS 2.0 now harnesses the transformative capabilities of Google Cloud Platform (GCP) and seamlessly integrates the data visualization prowess of Tableau. In this presentation, we delve into the profound advantages that CCS 2.0 confers over its predecessor, illuminating the multifaceted ways in which this migration empowers us with heightened efficiency, scalability, and cost-effectiveness.
 
+Advantages of CCS 2.0 over Version 1:
 
+Hyper-Scalability:
 
-claims_df: Claim_Status, REJECT1, REJECT2, REJECT3,Quantity_Dispensed,Days_Supply, Fill_Number, Product_Id/NDC, GPI, Prior_Auth_Reason_Code, Prior_Auth_Number, Carrier_ID, Account_Id, Group_Id, Multi_Source_Ind, RX/OTC_Indicator, Smart_PA_Indicator, Med_D_Drug_Indicator	, Formulary_Tier_Code, TF_PAMC_Nbr
+Version 1: The antecedent iteration was tethered to on-premises hardware, a constraint that constricted scalability and engendered intricate capacity planning.
+Version 2: CCS 2.0's metamorphosis into the cloud-driven realm of GCP has liberated us from these shackles, rendering the system dynamically scalable at the touch of a virtual button. This agility not only empowers us to meet surges in demand but ensures the agile allocation of resources, effectively obviating static infrastructure costs.
+Automated Data Orchestration:
 
-medd_req_df: FORMULARY_ID,GPI,NDC, Med_Name, Strength, Strength_UOM, MULTISOURCEFLAG, FORMULARY_TIER, PA_REQUIRED, PA_Group_NAME, QUANTITY_LIMIT_FLAG, QUANTITY_MAX,QUANTITY_TIME,USER_FIELD_7,USER_FIELD_8, USER_FIELD_9,	USER_FIELD_10, STEP_THERAPY, STEP_THERAPY_TOTALGROUPS,STEP_THERAPY_GROUPNAME,STEP_THERAPY_STEP, STEP_THERAPY_GROUPNAME1,STEP_THERAPY_STEP1,	RX_OTC
+Version 1: Its archaic design necessitated an onerous pipeline of manual data processing, thereby exposing us to operational bottlenecks and human error vulnerabilities.
+Version 2: CCS 2.0 leverages PySpark and Airflow, orchestrating an autonomous data processing ecosystem. This emancipation from manual intervention not only bequeaths time efficiencies but also immunizes us against the vagaries of human fallibility.
+Streamlined Surveillance Efficacy:
 
+Version 1: Lacking the agility to adapt, Version 1 was incapable of surveilling an expansive array of reject scenarios effectively.
+Version 2: CCS 2.0 flexes its muscles by proficiently handling up to 15 reject scenarios with aplomb. Rigorous validation protocols traversing seven distinct stages are meticulously enforced, conferring unparalleled surveillance accuracy, especially in the intricate realm of PAID scenarios.
+Cost Pruning through Dynamic Scaling:
 
+Version 1: The legacy on-premises infrastructure engendered persistent financial hemorrhages stemming from capital and operational expenses.
+Version 2: GCP's pay-as-you-go model empowers cost-efficient operations, eliminating the burden of hefty upfront investments and ongoing static overheads. Dynamic scaling deftly modulates resource allocation, ensuring resource efficiency and price optimization.
+Real-time Insights with Tableau:
 
+Version 1: An absence of sophisticated dashboarding tools constrained our access to real-time insights, hampering our ability to navigate the ebbs and flows of the surveillance process effectively.
+Version 2: By integrating Tableau, CCS 2.0 unfurls a user-friendly, intuitively navigable interface, bestowing instantaneous access to surveillance insights. This confers unparalleled decision-making acumen, particularly during pivotal junctures like the Welcome season.
+Technological Advancements:
 
-Non Formulary	R70 MR / R70 A6 569 ( Part B Non-Formulary products)												
-For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "70" + "Reject2" = "MR"													
-	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" formulary ["GPI" + "MONY" + "RX/OTC"]												
-	If GPI compare = "Match" then validate the "Formulary_Tier" value in "requirement file" in Med D file												
-		If "Formulary_Tier" in "requirement file" not equal to 11 then Flag as Mismatch											
-		If  "Formulary_Tier" = "11" in "requirement file" then Flag as Match											
-	If GPI compare = "Not Match" then Flag as Match												
-													
-													
-PA1	R75												
-For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "75" 													
-	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" ["GPI" + "MONY" + "RX/OTC"] + "PA_Required" field (MedD requirement file)												
-			If GPI compare = "Match" + "PA_Required = 0" then Flag as Mismatch										
-			If GPI compare = "Match" + "PA_Required = "1" + "PA_Group_NAME" = "HRM Age" OR "HRM Age AU" then check member age (date of birth)										
-				If member age = OR > 65 then Flag as Match									
-				If member age < 65 then Flag as Mismatch									
-			If GPI compare = "Match" + "PA_Required = "1" + "PA_Group_NAME" = blank or null value then Flag as Match										
-			If GPI compare = "Match" + "PA_Required = "2 or 3" then Flag as Mismatch										
-	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
-													
-PA2	R75/76												
-For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "75" + "Reject2" = "76"													
-	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" ["GPI" + "MONY" + "RX/OTC"] + "PA_Required" field (MedD requirement file)												
-			If GPI compare = "Match" + "PA_Required = 0" then Flag as Mismatch										
-			If GPI compare = "Match" + "PA_Required = "1 OR 3" then claim Flag as Mismatch										
-			If GPI compare = "Match" + "PA_Required = "2" then claim Flag as Match										
-	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
-													
-PA3	R75/A6/569												
-For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "75" + "Reject2" = "A6" + "Reject3" = "569"													
-	Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"]  and compare data to "requirements file" ["GPI" + "MONY" + "RX/OTC"] + "PA_Required" field (MedD requirement file)												
-			If GPI compare = "Match" + "PA_Required = 0" then Flag as Mismatch										
-			If GPI compare = "Match" + "PA_Required = "3" then Flag as Match										
-			If GPI compare = "Match" + "PA_Required = "1 or 2" then Flag as Mismatch										
-	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
-													
-QL	R76												
-For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "76" 													
-Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"] + bring in ["Quantity_Dispensed" and "Days_Supply" field value from "claim file"] compare data to "requirements file"  ["GPI" + "MONY" + "RX/OTC"] + "Quantity_Limit_Flag" + Quantity_Max" + "Quantity_Time" (Med D file)													
-	If GPI compare = "Match" +  "Quantity_Limit_Flag" > "0" then compare "claim file" "Quantity_Dispensed" + "Days_Supply" and "requirement file" "Quantity_Max" + "Quantity_Time"												
-		If "Quantity_Dispensed" > "Quantity_Max" OR "Days_Supply" > "Quantity_Time" then Flag as Match											
-		If "Quantity_Dispensed" < "Quantity_Max" AND "Days_Supply" < "Quantity_Time" then Flag as Mismatch											
-	If GPI compare = "Match" +  "Quantity_Limit_Flag" = "0" then Flag as Mismatch												
-	For Med D If GPI compare = "Not Match" then Flag as Mismatch												
-													
-Step Therapy	R608												
-For all claims in "claim file" with "Claim Status" = "R" + "Reject1" = "608" 													
-Perform GPI compare from "claim file" take [ "GPI" + "Multi_Source_Ind" + "RX/OTC_Indicator"] + bring in ["CT Status" field value from "claim file"] compare data to "requirements file"  ["GPI" + "MONY" + "RX/OTC"] + "Step_Therapy" (MedD)													
-	If GPI compare = "Match" +  "Step_Therapy" = "2"  + "CT Status" = "P" then Flag as Mismatch												
-	If GPI compare = "Match" + "Step_Therapy" = "2" + "CT Status" "not"  = "P" then claim should not be paying - Flag as Match												
-	if GPI compare = "Not Match" then claim should not be paying - Flag as Mismatch												
+Version 1: Predicated on a cocktail of Java script-based UI, Scala, Spark, and SQL SERVER.
+Version 2: Unveils the marvels of Tableau, PySpark, Airflow, and the omnipotence of Google Cloud Platform.
+Conclusion:
+The transition from CCS Version 1 to the resplendent CCS 2.0 is nothing short of a technological tour de force. The utilization of cloud-based infrastructure and the Tableau visualization platform has ushered in a new era of operational efficacy and cost-efficiency. By embracing GCP and Tableau, CCS 2.0 has not merely evolved but has undergone a digital renaissance, poised to catalyze further innovation and transform the landscape of clinical claims surveillance.
 
+Introduction:
+Clinical Claims Surveillance 2.0 (CCS 2.0) is a revolutionary step forward from its predecessor, Version 1. This transition involves migrating to Google Cloud Platform (GCP) and integrating the power of Tableau for data visualization. In this presentation, we'll explore the distinct advantages of CCS 2.0 over Version 1, highlighting how this technological evolution enhances efficiency, scalability, and cost-effectiveness.
 
-Provide psuedo code in Pyspark with commenets and for each reject code. 
+Advantages of CCS 2.0 over Version 1:
+
+Agile Scalability:
+
+Version 1: Limited scalability due to on-premises infrastructure and manual capacity planning.
+Version 2: CCS 2.0 on GCP provides dynamic scalability, adjusting resources on-demand, eliminating static infrastructure costs.
+Automated Data Processing:
+
+Version 1: Manual data processing led to operational bottlenecks and errors.
+Version 2: CCS 2.0 automates data processing with PySpark and Airflow, enhancing efficiency and accuracy.
+Efficient Surveillance:
+
+Version 1: Version 1 struggled with handling multiple scenarios.
+Version 2: CCS 2.0 effectively manages up to 15 scenarios with precise validation, especially for PAID cases.
+Cost Optimization:
+
+Version 1: High upfront and operational costs in on-premises infrastructure.
+Version 2: GCP's pay-as-you-go model minimizes fixed costs, and dynamic scaling optimizes resource utilization.
+Real-time Reporting with Tableau:
+
+Version 1: Lacked a real-time dashboarding tool, hindering decision-making.
+Version 2: CCS 2.0 integrates Tableau for real-time insights, enhancing surveillance, especially during peak seasons.
+Technological Advancements:
+
+Version 1: Relied on Java script-based UI, Scala, Spark, and SQL SERVER.
+Version 2: Utilizes Tableau, PySpark, Airflow, and GCP's cloud infrastructure.
+Conclusion:
+CCS 2.0's transition marks a remarkable technological shift. The adoption of GCP and Tableau not only enhances efficiency but also significantly reduces operational costs. This transformation allows for optimized resource allocation and further investments in strategic areas, setting the stage for future innovations.
