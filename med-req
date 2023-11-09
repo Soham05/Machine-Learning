@@ -63,3 +63,81 @@ Version 1: Relied on Java script-based UI, Scala, Spark, and SQL SERVER.
 Version 2: Utilizes Tableau, PySpark, Airflow, and GCP's cloud infrastructure.
 Conclusion:
 CCS 2.0's transition marks a remarkable technological shift. The adoption of GCP and Tableau not only enhances efficiency but also significantly reduces operational costs. This transformation allows for optimized resource allocation and further investments in strategic areas, setting the stage for future innovations.
+
+Subject: Revolutionizing Performance Guarantee Management with CarelonRX Dashboard
+
+
+I am excited to present the groundbreaking transformation brought about by the CarelonRX Performance Guarantee (PG) dashboard, a pivotal initiative aimed at revolutionizing how we manage insights and forecasts on budget and escalations.
+
+From Manual to Automated:
+In the pre-CarelonRX era, our PG team relied on manual processes involving Excel sheets for report generation. This not only consumed valuable time and resources but also hindered our ability to gain comprehensive insights into budgets allocated over time, past PG misses, and future forecasts.
+
+Advanced GCP and Tableau Integration:
+The CarelonRX dashboard leverages advanced Google Cloud Platform (GCP) capabilities and Tableau integration to automate data ingestion, processing, and dashboard/insight creation. This eliminates manual efforts, streamlining the entire process for the PG team.
+
+Historical Insight and Forecasting:
+Our PG team can now delve into the history of PG misses, track budget allocations, and make informed forecasts for the future. The Tableau dashboards provide a dynamic and interactive interface, allowing seamless navigation between different Lines of Business (LOBs), Business Services, PGs, Dates, Years, and Months.
+
+Risk Focus and Personalized Views:
+The dashboards are designed with a focus on PG risks, categorized as high, medium, and low. This facilitates a targeted approach to risk management. Furthermore, the highly interactive nature of the dashboards ensures that team members can easily filter and view data based on their specific needs.
+
+Seamless Integration with PGR Tool:
+In a strategic move, we are planning to integrate the CarelonRX dashboard with our existing Performance Guarantee Review (PGR) tool. This integration aims to eliminate any remaining manual efforts required to collect data, providing a seamless and comprehensive solution for our PG team.
+
+Advantages Over Excel:
+
+Automation and Efficiency:
+
+CarelonRX automates data processes, eliminating the manual effort involved in Excel-based reporting.
+Real-time Insights:
+
+GCP and Tableau enable real-time data ingestion, providing up-to-the-minute insights for informed decision-making.
+Interactivity and Personalization:
+
+Tableau dashboards offer a highly interactive experience, allowing personalized views and quick filtering for individual team members.
+Integration Capabilities:
+
+Seamless integration with the existing PGR tool ensures a unified and efficient workflow for the PG team.
+Scalability and Flexibility:
+
+GCP provides scalability, allowing us to handle growing data volumes, while Tableau's flexibility adapts to the evolving needs of our PG team.
+In conclusion, the CarelonRX Performance Guarantee dashboard marks a significant leap forward from traditional Excel-based reporting. Its integration with advanced cloud and visualization technologies not only enhances efficiency but also empowers our PG team with unprecedented insights and forecasting capabilities.
+
+We look forward to the continued success and efficiency gains that the CarelonRX dashboard brings to our Performance Guarantee management.
+
+Subject: Elevating PG Management with CarelonRX Dashboard
+
+Dear [Leadership Team],
+
+I am thrilled to present the CarelonRX Performance Guarantee (PG) dashboard, a transformative initiative enhancing our insights and forecasts on budget and escalations.
+
+From Manual to Automated:
+CarelonRX replaces manual Excel processes, streamlining data ingestion, processing, and dashboard creation via advanced GCP and Tableau integration.
+
+Historical Insight and Forecasting:
+The dashboard allows a deep dive into PG history, tracks budget allocations, and provides dynamic forecasting. Tableau facilitates easy navigation across LOBs, Business Services, PGs, Dates, and Years.
+
+Risk Focus and Personalized Views:
+Our dashboards prioritize PG risks (high, medium, low) and offer a highly interactive interface for personalized views, empowering the team with targeted insights.
+
+Seamless PGR Tool Integration:
+CarelonRX seamlessly integrates with our PGR tool, eliminating manual efforts in data collection and ensuring a cohesive solution for our PG team.
+
+Advantages Over Excel:
+
+Automation and Efficiency:
+
+CarelonRX automates data processes, replacing manual efforts in Excel.
+Real-time Insights:
+
+GCP and Tableau provide real-time data ingestion for up-to-the-minute decision-making.
+Interactivity and Personalization:
+
+Tableau dashboards offer a highly interactive experience with quick filtering.
+Integration Capabilities:
+
+Seamless integration with PGR tool streamlines workflows for the PG team.
+Scalability and Flexibility:
+
+GCP ensures scalability, while Tableau adapts to evolving PG team needs.
+The CarelonRX PG dashboard propels us beyond Excel limitations, providing efficiency gains and unprecedented insights. We anticipate continued success in PG management.
