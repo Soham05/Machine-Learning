@@ -52,10 +52,27 @@ body {
 .custom-button:hover {
     background-color: #990000 !important;
 }
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.logo-container img {
+    max-width: 200px;
+    height: auto;
+}
 """
 
 # UI Configuration
 with gr.Blocks(css=custom_css) as demo:
+    # CVS Health logo
+    gr.HTML(
+        """
+        <div class="logo-container">
+            <img src="https://logos-world.net/wp-content/uploads/2020/11/CVS-Health-Logo.png" alt="CVS Health Logo">
+        </div>
+        """
+    )
+    
     # Welcome message (center-aligned)
     gr.Markdown(
         "<div style='text-align: center;'>"
