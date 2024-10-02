@@ -4,7 +4,7 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch.nn.utils.rnn import pad_sequence
-from torchtext.vocab import build_vocab_from_iterator
+from collections import Counter
 
 # Custom Dataset class for XML
 class XMLDataset(Dataset):
@@ -19,7 +19,7 @@ class XMLDataset(Dataset):
     def __getitem__(self, idx):
         xml_text = self.xml_texts[idx]
         label = self.labels[idx]
-        tokenized_xml = torch.tensor([self.vocab[token] for token in tokenize_xml(xml_text)], dtype=torch.long)
+        tokenized_xml = torch.tensor([self.vocab.get(token, self.vocab["<unk>"]) for token in tokenize_xml(xml_text)], dtype=torch.long)
         return tokenized_xml, torch.tensor(label, dtype=torch.float)
 
 # Tokenize XML (simplified tokenizer)
@@ -37,9 +37,19 @@ xml_texts = [
 
 labels = [1, 0]  # 1 if file needs testing, 0 otherwise
 
-# Build the vocabulary
-vocab = build_vocab_from_iterator(map(tokenize_xml, xml_texts), specials=["<pad>", "<unk>"])
-vocab.set_default_index(vocab["<unk>"])  # Default to unknown token for unseen words
+# Build the vocabulary manually
+def build_vocab(xml_texts):
+    token_counter = Counter()
+    for xml in xml_texts:
+        tokens = tokenize_xml(xml)
+        token_counter.update(tokens)
+    
+    vocab = {token: idx + 2 for idx, (token, _) in enumerate(token_counter.items())}  # Starting from 2 (0 reserved for padding, 1 for unknown)
+    vocab["<pad>"] = 0
+    vocab["<unk>"] = 1
+    return vocab
+
+vocab = build_vocab(xml_texts)
 
 # Convert XMLs into padded sequences
 def collate_fn(batch):
