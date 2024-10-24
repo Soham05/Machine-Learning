@@ -100,6 +100,7 @@ class XMLDataPreparation:
         return validation_stats
 
 class XMLErrorPredictor:
+    class XMLErrorPredictor:
     def __init__(self):
         self.feature_extractor = XMLFeatureExtractor()
         self.model = RandomForestClassifier(
@@ -107,8 +108,87 @@ class XMLErrorPredictor:
             class_weight='balanced',
             random_state=42
         )
+        
+    def find_common_tags(self, xml_files):
+        """Identify common tags across all XML files"""
+        tag_counts = defaultdict(int)
+        total_files = len(xml_files)
+        
+        for xml in xml_files:
+            structure = self.feature_extractor.extract_tag_structure(xml)
+            if structure:
+                unique_tags = set(tag.split('/')[-1] for tag in structure['paths'])
+                for tag in unique_tags:
+                    tag_counts[tag] += 1
+        
+        # Consider tags present in at least 80% of files as common
+        self.feature_extractor.common_tags = {
+            tag for tag, count in tag_counts.items()
+            if count >= 0.8 * total_files
+        }
     
-    # ... [rest of the XMLErrorPredictor class remains the same as in previous artifact]
+    def prepare_dataset(self, xml_files, labels):
+        """Convert XML files to feature matrices"""
+        features_list = []
+        valid_indices = []
+        
+        for i, xml in enumerate(xml_files):
+            features = self.feature_extractor.process_xml_file(xml)
+            if features:
+                features_list.append(features)
+                valid_indices.append(i)
+        
+        X = pd.DataFrame(features_list)
+        y = labels[valid_indices]
+        return X, y
+    
+    def train(self, train_xml_files, train_labels):
+        """Train the model"""
+        # Find common tags first
+        self.find_common_tags(train_xml_files)
+        
+        # Prepare training data
+        X, y = self.prepare_dataset(train_xml_files, train_labels)
+        
+        # Train the model
+        self.model.fit(X, y)
+    
+    def predict(self, xml_file):
+        """Predict if XML needs testing"""
+        features = self.feature_extractor.process_xml_file(xml_file)
+        if not features:
+            return True  # If can't process XML, better to test it
+            
+        features_df = pd.DataFrame([features])
+        probability = self.model.predict_proba(features_df)[0][1]
+        return probability
+
+def evaluate_model(predictor, test_xml_files, test_labels, threshold=0.5):
+    """Evaluate model performance"""
+    predictions = []
+    for xml in test_xml_files:
+        prob = predictor.predict(xml)
+        predictions.append(prob > threshold)
+    
+    predictions = np.array(predictions)
+    
+    # Calculate metrics
+    tp = np.sum((predictions == 1) & (test_labels == 1))
+    fp = np.sum((predictions == 1) & (test_labels == 0))
+    tn = np.sum((predictions == 0) & (test_labels == 0))
+    fn = np.sum((predictions == 0) & (test_labels == 1))
+    
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = 2 * (precision * recall) / (precision + recall)
+    
+    return {
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+        'false_negatives': fn  # Important as these are errors we failed to catch
+    }
+   
 
 def main(xml_directory, error_crd_file):
     """
