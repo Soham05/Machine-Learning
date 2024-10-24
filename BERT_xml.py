@@ -188,7 +188,66 @@ def evaluate_model(predictor, test_xml_files, test_labels, threshold=0.5):
         'f1': f1,
         'false_negatives': fn  # Important as these are errors we failed to catch
     }
-   
+class XMLFeatureExtractor:
+    def __init__(self):
+        # Initialize BERT for semantic understanding
+        self.tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+        self.bert_model = DistilBertModel.from_pretrained('distilbert-base-uncased')
+        self.common_tags = set()
+        
+    def extract_tag_structure(self, xml_string):
+        """Extract hierarchical structure and content from XML"""
+        try:
+            root = ET.fromstring(xml_string)
+            structure = defaultdict(list)
+            
+            def traverse(element, path=""):
+                current_path = f"{path}/{element.tag}"
+                # Store tag content and attributes
+                structure['paths'].append(current_path)
+                structure['contents'].append(element.text)
+                structure['attributes'].append(dict(element.attrib))
+                
+                for child in element:
+                    traverse(child, current_path)
+                    
+            traverse(root)
+            return structure
+        except ET.ParseError:
+            return None
+
+    def get_bert_embeddings(self, text):
+        """Get BERT embeddings for text content"""
+        inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        with torch.no_grad():
+            outputs = self.bert_model(**inputs)
+        return outputs.last_hidden_state.mean(dim=1).numpy()
+
+    def process_xml_file(self, xml_file):
+        """Process single XML file and extract features"""
+        structure = self.extract_tag_structure(xml_file)
+        if not structure:
+            return None
+        
+        features = {}
+        
+        # Structural features
+        features['num_tags'] = len(structure['paths'])
+        features['max_depth'] = max(path.count('/') for path in structure['paths'])
+        features['num_attributes'] = sum(len(attrs) for attrs in structure['attributes'])
+        
+        # Content features
+        all_text = ' '.join(filter(None, structure['contents']))
+        if all_text.strip():
+            bert_embedding = self.get_bert_embeddings(all_text)
+            for i, val in enumerate(bert_embedding[0]):
+                features[f'bert_embedding_{i}'] = val
+        
+        # Tag presence features
+        for tag in self.common_tags:
+            features[f'has_tag_{tag}'] = any(tag in path for path in structure['paths'])
+            
+        return features   
 
 def main(xml_directory, error_crd_file):
     """
