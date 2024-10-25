@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModel
 from sklearn.ensemble import RandomForestClassifier
+import copy
 warnings.filterwarnings('ignore')
 
 class XMLAugmenter:
@@ -28,17 +29,20 @@ class XMLAugmenter:
             
             # Version 1: Modify attributes
             if np.random.random() < self.error_probability:
-                modified = self.modify_attributes(root.copy())
+                modified_root = ET.fromstring(xml_content)  # Create new root
+                modified = self.modify_attributes(modified_root)
                 augmented_versions.append(ET.tostring(modified, encoding='unicode'))
             
             # Version 2: Swap siblings
             if np.random.random() < self.error_probability:
-                modified = self.swap_siblings(root.copy())
+                modified_root = ET.fromstring(xml_content)  # Create new root
+                modified = self.swap_siblings(modified_root)
                 augmented_versions.append(ET.tostring(modified, encoding='unicode'))
             
             # Version 3: Remove random tags
             if np.random.random() < self.error_probability:
-                modified = self.remove_random_tags(root.copy())
+                modified_root = ET.fromstring(xml_content)  # Create new root
+                modified = self.remove_random_tags(modified_root)
                 augmented_versions.append(ET.tostring(modified, encoding='unicode'))
             
             return augmented_versions
@@ -57,20 +61,32 @@ class XMLAugmenter:
     def swap_siblings(self, element):
         """Swap random sibling elements"""
         for elem in element.iter():
-            if len(elem) >= 2 and np.random.random() < self.error_probability:
-                idx1, idx2 = np.random.choice(len(elem), 2, replace=False)
-                elem[idx1], elem[idx2] = elem[idx2], elem[idx1]
+            children = list(elem)
+            if len(children) >= 2 and np.random.random() < self.error_probability:
+                idx1, idx2 = np.random.choice(len(children), 2, replace=False)
+                # Remove and insert to swap
+                child1, child2 = children[idx1], children[idx2]
+                elem.remove(child1)
+                elem.remove(child2)
+                if idx1 < idx2:
+                    elem.insert(idx1, child2)
+                    elem.insert(idx2, child1)
+                else:
+                    elem.insert(idx2, child1)
+                    elem.insert(idx1, child2)
         return element
     
     def remove_random_tags(self, element):
         """Remove random tags while preserving content"""
         for elem in element.iter():
-            if len(elem) > 0 and np.random.random() < self.error_probability:
-                child_idx = np.random.randint(0, len(elem))
-                child = elem[child_idx]
+            children = list(elem)
+            if children and np.random.random() < self.error_probability:
+                child_idx = np.random.randint(0, len(children))
+                child = children[child_idx]
                 elem.remove(child)
-                for grandchild in child:
-                    elem.append(grandchild)
+                # Insert all grandchildren where the child was
+                for i, grandchild in enumerate(list(child)):
+                    elem.insert(child_idx + i, grandchild)
         return element
 
 class BERTXMLProcessor:
