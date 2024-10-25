@@ -360,8 +360,107 @@ if __name__ == "__main__":
                             batch_size=50, 
                             class_weight=10, 
                             n_splits=5)
+###################### testing ################################
 
-    if results:
-        print("\nFeature Importance:")
-        importance_dict = results['cross_validation_metrics']['feature_importance']
-        sorted_features = sorted(importance_dict.items(), key=lambda x: x[1],
+def prepare_test_data(xml_directory, error_crd_file, batch_size=100):
+    """Prepare test data using existing pipeline"""
+    print("Initializing test data preparation...")
+    data_prep = XMLDataPreparation(error_crd_file, batch_size=batch_size)
+    
+    print("Processing test XML files...")
+    features_df = data_prep.prepare_dataset(xml_directory)
+    
+    print("\nTest Dataset Statistics:")
+    print(f"Total files processed: {len(features_df)}")
+    if 'is_error' in features_df.columns:
+        print(f"Known error files: {features_df['is_error'].sum()}")
+        print(f"Error rate: {(features_df['is_error'].sum() / len(features_df)) * 100:.2f}%")
+    
+    return features_df
+
+def test_new_xmls(trained_predictor, features_df, output_file='predictions.csv', crd_output_file='crd_predictions.csv'):
+    """Make predictions on new data and save results with CRD comparison"""
+    # Get predictions
+    predictions_prob = trained_predictor.predict(features_df)
+    
+    # Create results dataframe
+    results_df = pd.DataFrame({
+        'filename': features_df['filename'],
+        'crd': features_df['crd'],
+        'prediction_probability': predictions_prob,
+        'predicted_error': predictions_prob > 0.5
+    })
+    
+    if 'is_error' in features_df.columns:
+        results_df['actual_error'] = features_df['is_error']
+        
+        # Calculate metrics if we have actual labels
+        y_true = features_df['is_error']
+        y_pred = predictions_prob > 0.5
+        
+        print("\nTest Set Metrics:")
+        print(f"Accuracy: {accuracy_score(y_true, y_pred):.3f}")
+        print(f"Recall: {recall_score(y_true, y_pred):.3f}")
+        print(f"Precision: {precision_score(y_true, y_pred):.3f}")
+        print(f"F1 Score: {f1_score(y_true, y_pred):.3f}")
+        print("\nClassification Report:")
+        print(classification_report(y_true, y_pred))
+        
+        # Create CRD comparison dataframe
+        crd_comparison_df = results_df[['crd', 'actual_error', 'predicted_error', 'prediction_probability']]
+        crd_comparison_df = crd_comparison_df.sort_values('prediction_probability', ascending=False)
+        
+        # Add prediction status
+        crd_comparison_df['prediction_status'] = 'Correct'
+        crd_comparison_df.loc[crd_comparison_df['actual_error'] != crd_comparison_df['predicted_error'], 
+                            'prediction_status'] = 'Incorrect'
+        
+        # Save CRD comparisons
+        crd_comparison_df.to_csv(crd_output_file, index=False)
+        print(f"\nCRD predictions saved to {crd_output_file}")
+        
+        # Print summary of predictions
+        print("\nPrediction Summary by CRD:")
+        print("True Positives (Correctly identified errors):")
+        tp_df = crd_comparison_df[(crd_comparison_df['actual_error'] == True) & 
+                                (crd_comparison_df['predicted_error'] == True)]
+        print(tp_df[['crd', 'prediction_probability']].to_string())
+        
+        print("\nFalse Negatives (Missed errors):")
+        fn_df = crd_comparison_df[(crd_comparison_df['actual_error'] == True) & 
+                                (crd_comparison_df['predicted_error'] == False)]
+        print(fn_df[['crd', 'prediction_probability']].to_string())
+        
+        print("\nFalse Positives (False alarms):")
+        fp_df = crd_comparison_df[(crd_comparison_df['actual_error'] == False) & 
+                                (crd_comparison_df['predicted_error'] == True)]
+        print(fp_df[['crd', 'prediction_probability']].to_string())
+    
+    # Sort by prediction probability in descending order
+    results_df = results_df.sort_values('prediction_probability', ascending=False)
+    
+    # Save full predictions
+    results_df.to_csv(output_file, index=False)
+    print(f"\nFull predictions saved to {output_file}")
+    
+    return results_df, crd_comparison_df if 'is_error' in features_df.columns else None
+
+# Set paths for your new data
+new_xml_dir = "path/to/new/xml/files"
+new_error_crd_file = "path/to/new/error_crds.csv"
+
+# Prepare the test data
+test_features_df = prepare_test_data(new_xml_dir, new_error_crd_file)
+
+# Make predictions and get results
+results_df = test_new_xmls(predictor, test_features_df, output_file='new_predictions.csv')
+# View top predicted errors
+print("\nTop 10 Most Likely Errors:")
+print(results_df.head(10)[['filename', 'prediction_probability']])
+
+# If you have actual labels, view confusion matrix
+if 'actual_error' in results_df.columns:
+    from sklearn.metrics import confusion_matrix
+    cm = confusion_matrix(results_df['actual_error'], results_df['predicted_error'])
+    print("\nConfusion Matrix:")
+    print(cm)
