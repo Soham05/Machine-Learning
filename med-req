@@ -1,15 +1,1 @@
-### **Business Requirement: Automated Testbed Generation for Healthcare PBMS**
 
-#### **Problem Statement:**
-In the current testing process for health insurance plans, testbeds (TB) are manually created by testers to validate the accuracy of plan configurations (PC) against specific requirements (REQ). This manual approach is time-consuming and prone to human error, leading to incomplete testing. The challenge lies in ensuring that all possible scenarios are covered, which is crucial for the accurate validation of plan configurations. The goal is to develop a solution that automates the generation of testbeds, improving testing efficiency and accuracy.
-
-#### **Components:**
-1. **Plan Configuration (PC):** A detailed setup of a health insurance plan, outlining what is covered and the corresponding values (e.g., drug coverage, copay amounts).
-2. **Requirements (REQ):** Changes or updates that need to be tested to ensure the plan configuration aligns with the specified criteria (e.g., new drug approvals, updated copay structures).
-3. **Testbeds (TB):** Mock claims created to test the plan configuration against the requirements. These testbeds must cover all possible scenarios to ensure comprehensive testing.
-
-#### **What is Expected from this Use Case:**
-The objective is to build a model that can automatically generate testbeds (TB) based on a given plan configuration (PC) and set of requirements (REQ). The model should be trained on historical data consisting of previous PC, REQ, and corresponding TBs created by testers. Once implemented, this model should:
-1. **Automatically generate comprehensive testbeds** that cover all possible scenarios for any given PC and REQ.
-2. **Reduce the time and effort required** for manual testbed creation.
-3. **Enhance testing accuracy** by ensuring that all potential scenarios are considered, leading to more reliable validation of plan configurations.
