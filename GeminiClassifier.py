@@ -1,6 +1,5 @@
 import os
 import glob
-import json
 import numpy as np
 import pandas as pd
 import xml.etree.ElementTree as ET
@@ -11,25 +10,20 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from imblearn.over_sampling import SMOTE
 
-# Vertex AI and Gemini Imports
-from vertexai.language_models import TextGenerationModel
+# Vertex AI Imports
 import vertexai
+from vertexai.language_models import TextEmbeddingModel, GenerativeModel
 from google.cloud import aiplatform
 
 class GeminiXMLAnalyzer:
     def __init__(self, project_id):
-        """
-        Initialize Gemini XML Analyzer with Vertex AI configuration
-        
-        Args:
-            project_id (str): Google Cloud Project ID
-        """
         vertexai.init(project=project_id)
-        self.model = TextGenerationModel.from_pretrained("gemini-pro")
+        self.embedding_model = TextEmbeddingModel.from_pretrained("textembedding-gecko@001")
+        self.generative_model = GenerativeModel("gemini-pro")
     
     def analyze_xml_semantic_features(self, xml_content):
         """
-        Use Gemini to extract semantic features and error potential
+        Extract semantic features using embeddings and generative model insights
         
         Args:
             xml_content (str): XML file content
@@ -37,102 +31,88 @@ class GeminiXMLAnalyzer:
         Returns:
             dict: Semantic features and error insights
         """
-        prompt = f"""
-        Analyze this XML and provide a comprehensive semantic feature extraction:
-
-        XML Content:
-        ```xml
-        {xml_content[:2000]}  # Limit content to avoid token overflow
-        ```
-
-        Please provide a detailed JSON analysis focusing on:
-        1. Structural complexity
-        2. Data type consistency
-        3. Potential semantic errors
-        4. Information richness
-        5. Validation complexity
-        6. Estimated error probability (0-1)
-
-        Respond strictly in JSON format with numerical scores.
-        """
-        
         try:
-            response = self.model.predict(
-                prompt, 
-                temperature=0.2,  # Low randomness for consistent analysis
-                max_output_tokens=500
-            )
+            # Truncate content to avoid token limits
+            truncated_content = xml_content[:2000]
             
-            # Parse and validate JSON response
-            semantic_features = self._parse_gemini_response(response.text)
+            # Generate embeddings
+            embeddings = self.embedding_model.get_embeddings([truncated_content])
+            embedding_vector = embeddings[0].values
+            
+            # Compute embedding-based statistical features
+            semantic_features = {
+                'embedding_mean': float(np.mean(embedding_vector)),
+                'embedding_std': float(np.std(embedding_vector)),
+                'embedding_max': float(np.max(embedding_vector)),
+                'embedding_min': float(np.min(embedding_vector)),
+                'embedding_dimension': len(embedding_vector)
+            }
+            
+            # Optional: Use generative model for additional insights
+            try:
+                prompt = f"""
+                Analyze this XML content and assess its potential for errors:
+                
+                XML Sample: {truncated_content}
+                
+                Provide a concise assessment of:
+                1. Structural complexity
+                2. Potential error indicators
+                3. Data consistency likelihood
+                """
+                
+                generative_response = self.generative_model.generate_content(prompt)
+                
+                # Extract additional semantic insights
+                semantic_features.update({
+                    'structural_complexity': self._extract_complexity_score(generative_response.text),
+                    'semantic_error_probability': self._estimate_error_probability(generative_response.text)
+                })
+            except Exception as gen_error:
+                print(f"Generative model analysis failed: {gen_error}")
+                semantic_features.update({
+                    'structural_complexity': 0.5,
+                    'semantic_error_probability': 0.5
+                })
+            
             return semantic_features
         
         except Exception as e:
-            print(f"Gemini analysis error: {e}")
+            print(f"Semantic analysis error: {e}")
             return self._default_semantic_features()
     
-    def _parse_gemini_response(self, response_text):
+    def _extract_complexity_score(self, analysis_text):
         """
-        Parse Gemini's JSON response with error handling
-        
-        Args:
-            response_text (str): Raw response from Gemini
-        
-        Returns:
-            dict: Parsed semantic features
+        Extract a complexity score from generative model's analysis
         """
-        try:
-            # Extract JSON from markdown code block or raw text
-            json_match = response_text.split('```json')[-1].split('```')[0].strip()
-            if not json_match:
-                json_match = response_text.strip()
-            
-            semantic_features = json.loads(json_match)
-            
-            # Validate and normalize features
-            required_keys = [
-                'structural_complexity', 
-                'data_type_consistency', 
-                'semantic_error_probability',
-                'information_richness',
-                'validation_complexity'
-            ]
-            
-            for key in required_keys:
-                if key not in semantic_features:
-                    semantic_features[key] = 0.5  # Default neutral value
-            
-            return semantic_features
-        
-        except json.JSONDecodeError:
-            return self._default_semantic_features()
+        complexity_keywords = ['complex', 'intricate', 'complicated', 'sophisticated']
+        return float(any(keyword in analysis_text.lower() for keyword in complexity_keywords))
+    
+    def _estimate_error_probability(self, analysis_text):
+        """
+        Estimate error probability based on generative model's analysis
+        """
+        error_keywords = ['error', 'issue', 'problem', 'inconsistent', 'incorrect']
+        return float(sum(keyword in analysis_text.lower() for keyword in error_keywords) / len(error_keywords))
     
     def _default_semantic_features(self):
         """
-        Provide default semantic features if Gemini analysis fails
-        
-        Returns:
-            dict: Default semantic feature set
+        Provide default semantic features if analysis fails
         """
         return {
+            'embedding_mean': 0.0,
+            'embedding_std': 0.0,
+            'embedding_max': 0.0,
+            'embedding_min': 0.0,
+            'embedding_dimension': 0,
             'structural_complexity': 0.5,
-            'data_type_consistency': 0.5,
-            'semantic_error_probability': 0.5,
-            'information_richness': 0.5,
-            'validation_complexity': 0.5
+            'semantic_error_probability': 0.5
         }
 
 class XMLErrorClassifier:
     def __init__(self, project_id, q1_folder, q2_folder, q1_error_csv, q2_error_csv):
         """
         Initialize XML Error Classifier
-        
-        Args:
-            project_id (str): Google Cloud Project ID
-            q1_folder (str): Quarter 1 XML folder path
-            q2_folder (str): Quarter 2 XML folder path
-            q1_error_csv (str): Quarter 1 error filenames CSV
-            q2_error_csv (str): Quarter 2 error filenames CSV
         """
         self.project_id = project_id
         self.q1_folder = q1_folder
@@ -146,12 +126,6 @@ class XMLErrorClassifier:
     def _extract_traditional_features(self, xml_path):
         """
         Extract traditional XML structural features
-        
-        Args:
-            xml_path (str): Path to XML file
-        
-        Returns:
-            list: Structural features
         """
         try:
             tree = ET.parse(xml_path)
@@ -177,9 +151,6 @@ class XMLErrorClassifier:
     def prepare_dataset(self):
         """
         Prepare training dataset with traditional and semantic features
-        
-        Returns:
-            tuple: Features array and labels array
         """
         # Read error file lists
         q1_errors = pd.read_csv(self.q1_error_csv)['filename'].tolist()
@@ -187,7 +158,6 @@ class XMLErrorClassifier:
         all_error_files = set(q1_errors + q2_errors)
         
         features = []
-        semantic_features = []
         labels = []
         
         # Process XMLs from both quarters
@@ -199,22 +169,28 @@ class XMLErrorClassifier:
                 # Traditional features
                 trad_features = self._extract_traditional_features(xml_file)
                 
-                # Read XML content for Gemini analysis
-                with open(xml_file, 'r') as f:
+                # Read XML content for semantic analysis
+                with open(xml_file, 'r', encoding='utf-8') as f:
                     xml_content = f.read()
                 
-                # Semantic features from Gemini
+                # Semantic features from Gemini Analyzer
                 semantic_analysis = self.gemini_analyzer.analyze_xml_semantic_features(xml_content)
+                
+                # Convert semantic analysis to feature vector
                 semantic_feature_vector = [
+                    semantic_analysis['embedding_mean'],
+                    semantic_analysis['embedding_std'],
+                    semantic_analysis['embedding_max'],
+                    semantic_analysis['embedding_min'],
+                    semantic_analysis['embedding_dimension'],
                     semantic_analysis['structural_complexity'],
-                    semantic_analysis['data_type_consistency'],
-                    semantic_analysis['semantic_error_probability'],
-                    semantic_analysis['information_richness'],
-                    semantic_analysis['validation_complexity']
+                    semantic_analysis['semantic_error_probability']
                 ]
                 
-                features.append(trad_features + semantic_feature_vector)
-                semantic_features.append(semantic_feature_vector)
+                # Combine traditional and semantic features
+                combined_features = trad_features + semantic_feature_vector
+                
+                features.append(combined_features)
                 labels.append(1 if filename in all_error_files else 0)
         
         return np.array(features), np.array(labels)
@@ -222,9 +198,6 @@ class XMLErrorClassifier:
     def train_classifier(self, test_size=0.2):
         """
         Train XML error classification model
-        
-        Args:
-            test_size (float): Proportion of test dataset
         """
         # Prepare dataset
         X, y = self.prepare_dataset()
@@ -256,12 +229,6 @@ class XMLErrorClassifier:
     def deploy_to_vertex_ai(self, model_name="xml-error-classifier"):
         """
         Deploy trained model to Vertex AI
-        
-        Args:
-            model_name (str): Name of the model in Vertex AI
-        
-        Returns:
-            aiplatform.Model: Deployed Vertex AI model
         """
         if not self.classifier:
             raise ValueError("Model not trained. Call train_classifier() first.")
@@ -285,12 +252,6 @@ class XMLErrorClassifier:
     def predict_xml_error(self, new_xml_path):
         """
         Predict error probability for a new XML file
-        
-        Args:
-            new_xml_path (str): Path to new XML file
-        
-        Returns:
-            dict: Prediction results
         """
         if not self.classifier:
             raise ValueError("Model not trained. Call train_classifier() first.")
@@ -298,18 +259,22 @@ class XMLErrorClassifier:
         # Traditional features
         trad_features = self._extract_traditional_features(new_xml_path)
         
-        # Read XML content for Gemini analysis
-        with open(new_xml_path, 'r') as f:
+        # Read XML content for semantic analysis
+        with open(new_xml_path, 'r', encoding='utf-8') as f:
             xml_content = f.read()
         
-        # Semantic features from Gemini
+        # Semantic features
         semantic_analysis = self.gemini_analyzer.analyze_xml_semantic_features(xml_content)
+        
+        # Convert semantic analysis to feature vector
         semantic_feature_vector = [
+            semantic_analysis['embedding_mean'],
+            semantic_analysis['embedding_std'],
+            semantic_analysis['embedding_max'],
+            semantic_analysis['embedding_min'],
+            semantic_analysis['embedding_dimension'],
             semantic_analysis['structural_complexity'],
-            semantic_analysis['data_type_consistency'],
-            semantic_analysis['semantic_error_probability'],
-            semantic_analysis['information_richness'],
-            semantic_analysis['validation_complexity']
+            semantic_analysis['semantic_error_probability']
         ]
         
         # Combine features
@@ -325,7 +290,7 @@ class XMLErrorClassifier:
             "semantic_insights": semantic_analysis
         }
 
-# Example Usage
+# Main Execution
 def main():
     PROJECT_ID = "your-gcp-project-id"
     Q1_FOLDER = "XMLTesting/files/Q1-XMLs/"
