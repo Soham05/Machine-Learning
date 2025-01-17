@@ -4,8 +4,11 @@ import numpy as np
 import pandas as pd
 import xml.etree.ElementTree as ET
 import pickle
-from concurrent.futures import ProcessPoolExecutor
-import multiprocessing
+import time
+import threading
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from ratelimit import limits, sleep_and_retry
 from tqdm import tqdm
 
 from sklearn.model_selection import train_test_split
@@ -19,159 +22,172 @@ import vertexai
 from vertexai.language_models import TextEmbeddingModel, GenerativeModel
 from google.cloud import aiplatform
 
-def analyze_xml_semantic_features(xml_content, project_id):
-    """
-    Standalone function for semantic feature extraction
-    """
-    try:
-        # Initialize Vertex AI for this process
-        vertexai.init(project=project_id)
-        embedding_model = TextEmbeddingModel.from_pretrained("textembedding-gecko@001")
-        generative_model = GenerativeModel("gemini-pro")
+# Global API counter
+class APICounter:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.count = 0
+        self.reset_time = time.time()
         
-        # Truncate content to avoid token limits
-        truncated_content = xml_content[:2000]
-        
-        # Generate embeddings
-        embeddings = embedding_model.get_embeddings([truncated_content])
-        embedding_vector = embeddings[0].values
-        
-        # Compute embedding-based statistical features
-        semantic_features = {
-            'embedding_mean': float(np.mean(embedding_vector)),
-            'embedding_std': float(np.std(embedding_vector)),
-            'embedding_max': float(np.max(embedding_vector)),
-            'embedding_min': float(np.min(embedding_vector)),
-            'embedding_dimension': len(embedding_vector)
-        }
-        
-        # Use generative model for additional insights
-        try:
-            prompt = f"""
-            Analyze this XML content and assess its potential for errors:
-            
-            XML Sample: {truncated_content}
-            
-            Provide a concise assessment of:
-            1. Structural complexity
-            2. Potential error indicators
-            3. Data consistency likelihood
-            """
-            
-            generative_response = generative_model.generate_content(prompt)
-            
-            # Extract additional semantic insights
-            semantic_features.update({
-                'structural_complexity': _extract_complexity_score(generative_response.text),
-                'semantic_error_probability': _estimate_error_probability(generative_response.text)
-            })
-        except Exception as gen_error:
-            print(f"Generative model analysis failed: {gen_error}")
-            semantic_features.update({
-                'structural_complexity': 0.5,
-                'semantic_error_probability': 0.5
-            })
-        
-        return semantic_features
-        
-    except Exception as e:
-        print(f"Semantic analysis error: {e}")
-        return _default_semantic_features()
-
-def _extract_complexity_score(analysis_text):
-    """
-    Extract a complexity score from generative model's analysis
-    """
-    complexity_keywords = ['complex', 'intricate', 'complicated', 'sophisticated']
-    return float(any(keyword in analysis_text.lower() for keyword in complexity_keywords))
-
-def _estimate_error_probability(analysis_text):
-    """
-    Estimate error probability based on generative model's analysis
-    """
-    error_keywords = ['error', 'issue', 'problem', 'inconsistent', 'incorrect']
-    return float(sum(keyword in analysis_text.lower() for keyword in error_keywords) / len(error_keywords))
-
-def _default_semantic_features():
-    """
-    Provide default semantic features if analysis fails
-    """
-    return {
-        'embedding_mean': 0.0,
-        'embedding_std': 0.0,
-        'embedding_max': 0.0,
-        'embedding_min': 0.0,
-        'embedding_dimension': 0,
-        'structural_complexity': 0.5,
-        'semantic_error_probability': 0.5
-    }
-
-def extract_traditional_features(xml_path):
-    """
-    Standalone function for traditional feature extraction
-    """
-    try:
-        context = ET.iterparse(xml_path, events=('start', 'end'))
-        
-        depth = 0
-        max_depth = 0
-        tags = set()
-        total_tags = 0
-        
-        for event, elem in context:
-            if event == 'start':
-                depth += 1
-                max_depth = max(max_depth, depth)
-                tags.add(elem.tag)
-                total_tags += 1
-            elif event == 'end':
-                depth -= 1
-                elem.clear()
-        
-        file_size = os.path.getsize(xml_path)
-        
-        return [len(tags), total_tags, max_depth, file_size]
-        
-    except Exception as e:
-        print(f"Feature extraction error for {xml_path}: {e}")
-        return [0, 0, 0, 0]
-
-def process_single_file(args):
-    """
-    Process a single XML file with both traditional and semantic features
-    """
-    xml_file, project_id, is_error = args
+    def increment(self):
+        with self.lock:
+            current_time = time.time()
+            if current_time - self.reset_time >= 60:
+                self.count = 0
+                self.reset_time = current_time
+            self.count += 1
+            return self.count
     
-    try:
-        # Extract traditional features
-        trad_features = extract_traditional_features(xml_file)
-        
-        # Read XML content
-        with open(xml_file, 'r', encoding='utf-8') as f:
-            xml_content = f.read()
-        
-        # Get semantic features
-        semantic_analysis = analyze_xml_semantic_features(xml_content, project_id)
-        
-        # Convert semantic analysis to feature vector
-        semantic_feature_vector = [
-            semantic_analysis['embedding_mean'],
-            semantic_analysis['embedding_std'],
-            semantic_analysis['embedding_max'],
-            semantic_analysis['embedding_min'],
-            semantic_analysis['embedding_dimension'],
-            semantic_analysis['structural_complexity'],
-            semantic_analysis['semantic_error_probability']
-        ]
-        
-        # Combine features
-        features = trad_features + semantic_feature_vector
-        
-        return features, is_error
-        
-    except Exception as e:
-        print(f"Error processing {xml_file}: {e}")
-        return None, None
+    def get_count(self):
+        with self.lock:
+            return self.count
+
+api_counter = APICounter()
+
+# Rate limiting decorators
+@sleep_and_retry
+@limits(calls=580, period=60)
+def rate_limited_api_call(func, *args, **kwargs):
+    return func(*args, **kwargs)
+
+class FeatureExtractor:
+    def __init__(self, project_id):
+        self.project_id = project_id
+        vertexai.init(project=project_id)
+        self.embedding_model = None
+        self.generative_model = None
+    
+    def _initialize_models(self):
+        if not self.embedding_model:
+            self.embedding_model = TextEmbeddingModel.from_pretrained("textembedding-gecko@001")
+        if not self.generative_model:
+            self.generative_model = GenerativeModel("gemini-pro")
+    
+    def extract_traditional_features(self, xml_path):
+        try:
+            context = ET.iterparse(xml_path, events=('start', 'end'))
+            depth = 0
+            max_depth = 0
+            tags = set()
+            total_tags = 0
+            
+            for event, elem in context:
+                if event == 'start':
+                    depth += 1
+                    max_depth = max(max_depth, depth)
+                    tags.add(elem.tag)
+                    total_tags += 1
+                elif event == 'end':
+                    depth -= 1
+                    elem.clear()
+            
+            file_size = os.path.getsize(xml_path)
+            return [len(tags), total_tags, max_depth, file_size]
+            
+        except Exception as e:
+            print(f"Traditional feature extraction error for {xml_path}: {e}")
+            return [0, 0, 0, 0]
+    
+    def extract_semantic_features(self, xml_content):
+        try:
+            self._initialize_models()
+            count = api_counter.increment()
+            
+            # Add safety delay if approaching limit
+            if count > 550:
+                time.sleep(2)
+            
+            # Truncate content
+            truncated_content = xml_content[:2000]
+            
+            # Get embeddings with retry logic
+            max_retries = 3
+            embedding_vector = None
+            
+            for attempt in range(max_retries):
+                try:
+                    embeddings = rate_limited_api_call(
+                        self.embedding_model.get_embeddings,
+                        [truncated_content]
+                    )
+                    embedding_vector = embeddings[0].values
+                    break
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        raise e
+                    time.sleep(2 ** attempt)
+            
+            if embedding_vector is None:
+                return self._default_semantic_features()
+            
+            features = {
+                'embedding_mean': float(np.mean(embedding_vector)),
+                'embedding_std': float(np.std(embedding_vector)),
+                'embedding_max': float(np.max(embedding_vector)),
+                'embedding_min': float(np.min(embedding_vector)),
+                'embedding_dimension': len(embedding_vector)
+            }
+            
+            # Only do generative analysis if not hitting rate limits
+            if count < 500 and count % 2 == 0:
+                try:
+                    prompt = f"""
+                    Analyze this XML content and assess its potential for errors:
+                    XML Sample: {truncated_content}
+                    Provide a concise assessment of:
+                    1. Structural complexity
+                    2. Potential error indicators
+                    3. Data consistency likelihood
+                    """
+                    
+                    generative_response = rate_limited_api_call(
+                        self.generative_model.generate_content,
+                        prompt
+                    )
+                    
+                    features.update({
+                        'structural_complexity': self._extract_complexity_score(generative_response.text),
+                        'semantic_error_probability': self._estimate_error_probability(generative_response.text)
+                    })
+                except Exception:
+                    features.update(self._default_complexity_scores())
+            else:
+                features.update(self._default_complexity_scores())
+            
+            return features
+            
+        except Exception as e:
+            print(f"Semantic feature extraction error: {e}")
+            return self._default_semantic_features()
+    
+    @staticmethod
+    def _extract_complexity_score(analysis_text):
+        complexity_keywords = ['complex', 'intricate', 'complicated', 'sophisticated']
+        return float(any(keyword in analysis_text.lower() for keyword in complexity_keywords))
+    
+    @staticmethod
+    def _estimate_error_probability(analysis_text):
+        error_keywords = ['error', 'issue', 'problem', 'inconsistent', 'incorrect']
+        return float(sum(keyword in analysis_text.lower() for keyword in error_keywords) / len(error_keywords))
+    
+    @staticmethod
+    def _default_semantic_features():
+        return {
+            'embedding_mean': 0.0,
+            'embedding_std': 0.0,
+            'embedding_max': 0.0,
+            'embedding_min': 0.0,
+            'embedding_dimension': 0,
+            'structural_complexity': 0.5,
+            'semantic_error_probability': 0.5
+        }
+    
+    @staticmethod
+    def _default_complexity_scores():
+        return {
+            'structural_complexity': 0.5,
+            'semantic_error_probability': 0.5
+        }
 
 class XMLErrorClassifier:
     def __init__(self, project_id, q1_folder, q2_folder, q1_error_csv, q2_error_csv):
@@ -181,11 +197,48 @@ class XMLErrorClassifier:
         self.q1_error_csv = q1_error_csv
         self.q2_error_csv = q2_error_csv
         self.classifier = None
+        self.feature_extractor = FeatureExtractor(project_id)
         
+        # Create checkpoint directory
+        self.checkpoint_dir = "checkpoints"
+        os.makedirs(self.checkpoint_dir, exist_ok=True)
+    
+    def process_single_file(self, xml_file, is_error):
+        try:
+            # Extract traditional features
+            trad_features = self.feature_extractor.extract_traditional_features(xml_file)
+            
+            # Read and extract semantic features
+            with open(xml_file, 'r', encoding='utf-8') as f:
+                xml_content = f.read()
+            
+            semantic_features = self.feature_extractor.extract_semantic_features(xml_content)
+            
+            # Convert to feature vector
+            semantic_vector = [
+                semantic_features['embedding_mean'],
+                semantic_features['embedding_std'],
+                semantic_features['embedding_max'],
+                semantic_features['embedding_min'],
+                semantic_features['embedding_dimension'],
+                semantic_features['structural_complexity'],
+                semantic_features['semantic_error_probability']
+            ]
+            
+            return trad_features + semantic_vector, is_error
+            
+        except Exception as e:
+            print(f"Error processing {xml_file}: {e}")
+            return None, None
+    
     def prepare_dataset(self):
-        """
-        Prepare training dataset using multiprocessing
-        """
+        # Load checkpoints if they exist
+        latest_checkpoint = self._get_latest_checkpoint()
+        if latest_checkpoint:
+            print(f"Resuming from checkpoint: {latest_checkpoint}")
+            with open(latest_checkpoint, 'rb') as f:
+                return pickle.load(f)
+        
         # Read error files
         q1_errors = pd.read_csv(self.q1_error_csv)['filename'].tolist()
         q2_errors = pd.read_csv(self.q2_error_csv)['filename'].tolist()
@@ -196,39 +249,58 @@ class XMLErrorClassifier:
         for folder in [self.q1_folder, self.q2_folder]:
             xml_files.extend(glob.glob(os.path.join(folder, '*.xml')))
         
-        # Calculate optimal batch size
-        num_cores = multiprocessing.cpu_count()
-        batch_size = max(1, len(xml_files) // (num_cores * 4))  # 4 batches per core
-        
-        # Prepare arguments for parallel processing
-        process_args = [
-            (xml_file, self.project_id, os.path.basename(xml_file) in all_error_files)
-            for xml_file in xml_files
-        ]
+        # Calculate batch size
+        num_cores = min(multiprocessing.cpu_count(), 4)  # Limit cores for API rate
+        batch_size = max(1, min(50, len(xml_files) // (num_cores * 8)))
         
         features = []
         labels = []
         
-        # Process files in parallel with progress tracking
-        with ProcessPoolExecutor(max_workers=num_cores) as executor:
-            with tqdm(total=len(process_args), desc="Processing XML files") as pbar:
-                # Process in batches
-                for i in range(0, len(process_args), batch_size):
-                    batch_args = process_args[i:i + batch_size]
-                    batch_results = list(executor.map(process_single_file, batch_args))
+        # Process files with rate limiting
+        with ThreadPoolExecutor(max_workers=num_cores) as executor:
+            with tqdm(total=len(xml_files), desc="Processing XML files") as pbar:
+                for i in range(0, len(xml_files), batch_size):
+                    batch = xml_files[i:i + batch_size]
                     
-                    for feature, label in batch_results:
-                        if feature is not None and label is not None:
-                            features.append(feature)
+                    # Create tasks for batch
+                    futures = []
+                    for xml_file in batch:
+                        is_error = os.path.basename(xml_file) in all_error_files
+                        futures.append(
+                            executor.submit(self.process_single_file, xml_file, is_error)
+                        )
+                    
+                    # Process completed tasks
+                    for future in futures:
+                        feature_vector, label = future.result()
+                        if feature_vector is not None and label is not None:
+                            features.append(feature_vector)
                             labels.append(label)
                         pbar.update(1)
+                    
+                    # Create checkpoint every 500 files
+                    if len(features) % 500 == 0:
+                        self._save_checkpoint(features, labels)
+                    
+                    # Add delay between batches
+                    time.sleep(0.1)
         
         return np.array(features), np.array(labels)
     
+    def _save_checkpoint(self, features, labels):
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        checkpoint_path = os.path.join(
+            self.checkpoint_dir, 
+            f"checkpoint_{len(features)}_{timestamp}.pkl"
+        )
+        with open(checkpoint_path, 'wb') as f:
+            pickle.dump((np.array(features), np.array(labels)), f)
+    
+    def _get_latest_checkpoint(self):
+        checkpoints = glob.glob(os.path.join(self.checkpoint_dir, "checkpoint_*.pkl"))
+        return max(checkpoints) if checkpoints else None
+    
     def train_classifier(self, test_size=0.2):
-        """
-        Train the classifier with error handling
-        """
         try:
             print("Starting dataset preparation...")
             X, y = self.prepare_dataset()
@@ -253,7 +325,7 @@ class XMLErrorClassifier:
                 class_weight='balanced',
                 max_depth=10,
                 min_samples_split=5,
-                n_jobs=-1  # Use all available cores
+                n_jobs=-1
             )
             
             self.classifier.fit(X_resampled, y_resampled)
@@ -271,9 +343,6 @@ class XMLErrorClassifier:
             return False
     
     def save_model(self, filepath):
-        """
-        Save the trained model with error handling
-        """
         if not self.classifier:
             raise ValueError("Model not trained. Call train_classifier() first.")
         
@@ -287,9 +356,6 @@ class XMLErrorClassifier:
             return False
     
     def load_model(self, filepath):
-        """
-        Load a trained model with error handling
-        """
         try:
             with open(filepath, 'rb') as f:
                 self.classifier = pickle.load(f)
@@ -300,15 +366,12 @@ class XMLErrorClassifier:
             return False
     
     def predict_xml_error(self, new_xml_path):
-        """
-        Predict error probability for a new XML file
-        """
         if not self.classifier:
             raise ValueError("Model not trained. Call train_classifier() first.")
         
         try:
             # Process single file
-            features, _ = process_single_file((new_xml_path, self.project_id, False))
+            features, _ = self.process_single_file(new_xml_path, False)
             
             if features is None:
                 raise ValueError(f"Could not process file: {new_xml_path}")
@@ -346,24 +409,19 @@ def main():
         Q2_ERROR_CSV
     )
     
-    # Train or load model
-    if os.path.exists(MODEL_PATH):
-        print("Loading existing model...")
-        classifier.load_model(MODEL_PATH)
-    else:
-        print("Training new model...")
-        if classifier.train_classifier():
-            classifier.save_model(MODEL_PATH)
+    # Train and save the model
+    if classifier.train_classifier():
+        classifier.save_model(MODEL_PATH)
     
-    # Example prediction
-    test_file = "path/to/test/file.xml"
-    if os.path.exists(test_file):
-        prediction = classifier.predict_xml_error(test_file)
+    # Load the model and predict for a new XML file
+    if classifier.load_model(MODEL_PATH):
+        test_xml_file = "XMLTesting/test_file.xml"  # Replace with your test file path
+        prediction = classifier.predict_xml_error(test_xml_file)
         if prediction:
-            print("\nPrediction Results:")
-            print(f"File: {prediction['filename']}")
-            print(f"Error Predicted: {prediction['is_error']}")
-            print(f"Error Probability: {prediction['error_probability']:.2%}")
-
+            print("Prediction results:")
+            print(prediction)
+        else:
+            print(f"Failed to predict for file: {test_xml_file}")
+    
 if __name__ == "__main__":
     main()
