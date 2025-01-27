@@ -1,22 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
-#Version 3 
-# Implemented Enhanced feature engineering to add more sophisticated features. 
-# Implemented stacking classifier to add Gradient Boost classifier and RFC 
-# Implemented class imbalance using SMOTEomek
-# Feature scaling for better performance
-# Implemented dynamic threshold optimization to help balance precision and recall
-# Confidence scores in predictions
-
-#This is code is trained for all the xml files for Q1 and Q2 for 2024. 
-
-
 # In[1]:
-
 
 import os
 import glob
@@ -37,6 +19,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from imblearn.over_sampling import SMOTE
 from imblearn.combine import SMOTETomek
+from sklearn.feature_selection import RFE
 
 # Vertex AI and Gemini Imports
 from vertexai.language_models import TextGenerationModel
@@ -52,9 +35,7 @@ import threading
 import json
 import csv
 
-
 # In[2]:
-
 
 compute_service_account = ""
 compute_cmek = ""
@@ -63,9 +44,7 @@ bucket_name = ""
 storage_bucket_uri = f""
 storage_project_id = ""
 
-
 # In[3]:
-
 
 # Global API counter
 class APICounter:
@@ -89,9 +68,7 @@ class APICounter:
 
 api_counter = APICounter()
 
-
 # In[4]:
-
 
 # Rate limiting decorators
 @sleep_and_retry
@@ -99,9 +76,7 @@ api_counter = APICounter()
 def rate_limited_api_call(func, *args, **kwargs):
     return func(*args, **kwargs)
 
-
 # In[5]:
-
 
 class FeatureExtractor:
     def __init__(self, project_id):
@@ -127,6 +102,8 @@ class FeatureExtractor:
             element_counts  = {}
             attribute_counts = 0
             text_lengths = []
+            nesting_depths = []
+            attribute_values = []
             
             for event, elem in context:
                 if event == 'start':
@@ -135,7 +112,7 @@ class FeatureExtractor:
                     tags.add(elem.tag)
                     total_tags += 1
                     
-                    # Count element occurances
+                    # Count element occurrences
                     element_counts[elem.tag] = element_counts.get(elem.tag, 0) + 1
                     
                     # Count attributes
@@ -144,6 +121,13 @@ class FeatureExtractor:
                     # Track text content length
                     if elem.text and elem.text.strip():
                         text_lengths.append(len(elem.text.strip()))
+                    
+                    # Track nesting depths
+                    nesting_depths.append(depth)
+                    
+                    # Track attribute values
+                    for attr, value in elem.attrib.items():
+                        attribute_values.append(len(value))
                         
                 elif event == 'end':
                     depth -= 1
@@ -151,11 +135,13 @@ class FeatureExtractor:
             
             file_size = os.path.getsize(xml_path)
             
-            # Calculate advanced meterics
+            # Calculate advanced metrics
             avg_text_length = np.mean(text_lengths) if text_lengths else 0
             tag_diversity = len(tags)/ total_tags if total_tags > 0 else 0
             avg_attributes = attribute_counts/total_tags if total_tags > 0 else 0
             most_common_tag_freq = max(element_counts.values())/ total_tags if total_tags > 0 else 0
+            nesting_variance = np.var(nesting_depths) if nesting_depths else 0
+            attribute_value_variance = np.var(attribute_values) if attribute_values else 0
             
             features = [
                 len(tags),             # length of tags
@@ -167,14 +153,15 @@ class FeatureExtractor:
                 most_common_tag_freq,  # Most common tag frequency
                 avg_text_length,       # average text content length
                 attribute_counts,      # Total attribute count
-                total_tags / file_size # Tag density
-            
+                total_tags / file_size, # Tag density
+                nesting_variance,      # Variance in nesting depths
+                attribute_value_variance # Variance in attribute values
             ]
             return features
             
         except Exception as e:
             print(f"Traditional feature extraction error for {xml_path}: {e}")
-            return [0] * 10 # Return zeros for all features
+            return [0] * 12 # Return zeros for all features
     
     def extract_semantic_features(self, xml_content):
         try:
@@ -219,13 +206,15 @@ class FeatureExtractor:
             # Only do generative analysis if not hitting rate limits
             if count < 500 and count % 2 == 0:
                 try:
+                    # Enhanced generative analysis
                     prompt = f"""
                     Analyze this XML content and assess its potential for errors:
                     XML Sample: {truncated_content}
                     Provide a concise assessment of:
                     1. Structural complexity
-                    2. Potential error indicators
-                    3. Data consistency likelihood
+                    2. Potential error indicators (e.g., missing tags, invalid values)
+                    3. Data consistency likelihood (e.g., numeric ranges, date formats)
+                    4. Contextual consistency (e.g., tag-value relationships)
                     """
                     
                     generative_response = rate_limited_api_call(
@@ -233,9 +222,15 @@ class FeatureExtractor:
                         prompt
                     )
                     
+                    # Extract additional semantic features
+                    analysis_text = generative_response.text
                     features.update({
-                        'structural_complexity': self._extract_complexity_score(generative_response.text),
-                        'semantic_error_probability': self._estimate_error_probability(generative_response.text)
+                        'structural_complexity': self._extract_complexity_score(analysis_text),
+                        'semantic_error_probability': self._estimate_error_probability(analysis_text),
+                        'missing_tags': self._extract_missing_tags(analysis_text),
+                        'invalid_values': self._extract_invalid_values(analysis_text),
+                        'data_consistency': self._extract_data_consistency(analysis_text),
+                        'contextual_consistency': self._extract_contextual_consistency(analysis_text)
                     })
                 except Exception:
                     features.update(self._default_complexity_scores())
@@ -259,6 +254,26 @@ class FeatureExtractor:
         return float(sum(keyword in analysis_text.lower() for keyword in error_keywords) / len(error_keywords))
     
     @staticmethod
+    def _extract_missing_tags(analysis_text):
+        missing_tag_keywords = ['missing', 'required', 'absent']
+        return float(any(keyword in analysis_text.lower() for keyword in missing_tag_keywords))
+    
+    @staticmethod
+    def _extract_invalid_values(analysis_text):
+        invalid_value_keywords = ['invalid', 'incorrect', 'out of range']
+        return float(any(keyword in analysis_text.lower() for keyword in invalid_value_keywords))
+    
+    @staticmethod
+    def _extract_data_consistency(analysis_text):
+        consistency_keywords = ['consistent', 'valid', 'correct']
+        return float(any(keyword in analysis_text.lower() for keyword in consistency_keywords))
+    
+    @staticmethod
+    def _extract_contextual_consistency(analysis_text):
+        contextual_keywords = ['context', 'relationship', 'appropriate']
+        return float(any(keyword in analysis_text.lower() for keyword in contextual_keywords))
+    
+    @staticmethod
     def _default_semantic_features():
         return {
             'embedding_mean': 0.0,
@@ -267,19 +282,25 @@ class FeatureExtractor:
             'embedding_min': 0.0,
             'embedding_dimension': 0,
             'structural_complexity': 0.5,
-            'semantic_error_probability': 0.5
+            'semantic_error_probability': 0.5,
+            'missing_tags': 0.0,
+            'invalid_values': 0.0,
+            'data_consistency': 0.5,
+            'contextual_consistency': 0.5
         }
     
     @staticmethod
     def _default_complexity_scores():
         return {
             'structural_complexity': 0.5,
-            'semantic_error_probability': 0.5
+            'semantic_error_probability': 0.5,
+            'missing_tags': 0.0,
+            'invalid_values': 0.0,
+            'data_consistency': 0.5,
+            'contextual_consistency': 0.5
         }
 
-
 # In[6]:
-
 
 class AdvancedXMLClassifier:
     def __init__(self):
@@ -330,9 +351,7 @@ class AdvancedXMLClassifier:
             n_jobs = -1
         )
 
-
 # In[7]:
-
 
 class XMLErrorClassifier:
     def __init__(self, project_id, q1_folder, q2_folder, q1_error_csv, q2_error_csv, use_checkpoints = False):
@@ -352,10 +371,8 @@ class XMLErrorClassifier:
     
     def process_single_file(self, xml_file, is_error):
         try:
-            #print("\n in process_single_file")
             # Extract traditional features
             trad_features = self.feature_extractor.extract_traditional_features(xml_file)
-            #print(f"Traditional Features shape: {len(trad_features)}")
             
             # Read and extract semantic features
             with open(xml_file, 'r', encoding='utf-8') as f:
@@ -371,17 +388,26 @@ class XMLErrorClassifier:
                 semantic_features['embedding_min'],
                 semantic_features['embedding_dimension'],
                 semantic_features['structural_complexity'],
-                semantic_features['semantic_error_probability']
+                semantic_features['semantic_error_probability'],
+                semantic_features['missing_tags'],
+                semantic_features['invalid_values'],
+                semantic_features['data_consistency'],
+                semantic_features['contextual_consistency']
             ]
             
-            #print(f"Semantic Features shape: {len(semantic_vector)}")
             final_features = trad_features + semantic_vector
-            #print(f"Combined Features shape: {len(final_features)}")
             return final_features, is_error
             
         except Exception as e:
             print(f"Error processing {xml_file}: {e}")
             return None, None
+    
+    def select_features(self, X, y):
+        # Use Recursive Feature Elimination (RFE) with a Random Forest estimator
+        estimator = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+        selector = RFE(estimator, n_features_to_select=15, step=1)
+        selector = selector.fit(X, y)
+        return selector.transform(X), selector.support_
     
     def prepare_dataset(self):
         try: 
@@ -478,10 +504,14 @@ class XMLErrorClassifier:
             scalar = StandardScaler()
             X_scaled = scalar.fit_transform(X)
             
+            # Feature selection
+            print("Performing feature selection...")
+            X_selected, selected_features = self.select_features(X_scaled, y)
+            print(f"Selected {X_selected.shape[1]} features out of {X_scaled.shape[1]}")
             
             # Split data
             X_train, X_test, y_train, y_test = train_test_split(
-                X_scaled, y, test_size=test_size, stratify=y, random_state=42
+                X_selected, y, test_size=test_size, stratify=y, random_state=42
             )
             
             # Advanced resampling using SMOTEomek to handle imbalanced dataset
@@ -571,32 +601,17 @@ class XMLErrorClassifier:
         
         try:
             # Process single file
-            #print("here before calling process_single_file")
             features, _ = self.process_single_file(new_xml_path, False)
-            #print(f"In predict_xml_error Features shape before reshape: {(features)}")
             
             if features is None:
                 raise ValueError(f"Could not process file: {new_xml_path}")
             
             features_array = np.array(features, dtype=float).reshape(1, -1)
             features_scaled = self.scalar.transform(features_array)
-            #print(f"In predict_xml_error Features shape after scaling : {(features_scaled)}")
-            
-            # Reshape features to 2d array
-            #features_2d = np.array(features).reshape(1,-1)
-            #print(f"In predict_xml_error Features shape after reshape: {features_2d.shape}")
-            
-            # Scale features
-            
             
             # Predict with custom thresholds
-            #features_array = np.array(features).reshape(1, -1)
             prediction = self.classifier.predict(features_scaled)
             probability = self.classifier.predict_proba(features_scaled)
-            #prediction = (probability[0][1] >= self.threshold)
-            
-            
-            
             
             # Calculate Confidence score
             confidence = abs(probability[0][1] - 0.5) * 2 # Scale to 0-1
@@ -614,9 +629,7 @@ class XMLErrorClassifier:
             print(f"Error during prediction: {e}")
             return None
 
-
 # In[8]:
-
 
 # Logic to predict multiple xmls
 
@@ -667,9 +680,7 @@ def predict_multiple_xmls(classifier,input_folder,results_csv):
             writer.writerow(pred)
     print("\n Predictions Complete!")
 
-
 # In[23]:
-
 
 def main():
     import sys
@@ -728,4 +739,3 @@ def main():
         predict_multiple_xmls(classifier,input_folder,output_csv)
 if __name__ == "__main__":
     main()
-
