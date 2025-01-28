@@ -74,7 +74,39 @@ api_counter = APICounter()
 def rate_limited_api_call(func, *args, **kwargs):
     return func(*args, **kwargs)
 
-# In[5]:
+# New FeatureStore class for persistent storage
+class FeatureStore:
+    def __init__(self, store_path="feature_store"):
+        self.store_path = store_path
+        os.makedirs(store_path, exist_ok=True)
+        
+    def save_features(self, features, labels, feature_names, scaler, selector, metadata):
+        data = {
+            'features': features,
+            'labels': labels,
+            'feature_names': feature_names,
+            'scaler': scaler,
+            'selector': selector,
+            'metadata': metadata,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        store_file = os.path.join(self.store_path, 'feature_store.pkl')
+        with open(store_file, 'wb') as f:
+            pickle.dump(data, f)
+        
+        print(f"Features and components saved to {store_file}")
+        
+    def load_features(self):
+        store_file = os.path.join(self.store_path, 'feature_store.pkl')
+        if not os.path.exists(store_file):
+            raise FileNotFoundError("Feature store not found. Extract features first.")
+            
+        with open(store_file, 'rb') as f:
+            data = pickle.load(f)
+            
+        return data
+
 
 class FeatureExtractor:
     def __init__(self, project_id):
