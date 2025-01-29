@@ -475,13 +475,22 @@ class XMLErrorClassifier:
             pickle.dump(model_data, f)
     
     def load_model(self, filepath):
-        with open(filepath, 'rb') as f:
-            model_data = pickle.load(f)
+        try:
+            with open(filepath, 'rb') as f:
+                model_data = pickle.load(f)
+            
+            self.classifier = model_data['classifier']
+            self.scaler = model_data['scaler']
+            self.selector = model_data['selector']
+            self.threshold = model_data['threshold']
+            print(f"Model, scaler,selector and threshold successfully loaded from {filepath}")
+    
+            return True
+        except Exception as e:
+            print(f"Error loading model : {e}")
+            return False
         
-        self.classifier = model_data['classifier']
-        self.scaler = model_data['scaler']
-        self.selector = model_data['selector']
-        self.threshold = model_data['threshold']
+    
     
     def predict_xml_error(self, new_xml_path):
         if not self.classifier:
@@ -562,45 +571,87 @@ class AdvancedXMLClassifier:
             cv = 5,
             n_jobs = -1
         )
-def predict_multiple_xmls(classifier, input_folder, results_csv):
+
+# Parallel XML Prediction Implementation
+
+def process_single_prediction(args):
+    classifier, xml_file, input_folder = args
+    full_path = os.path.join(input_folder, xml_file)
+    try:
+        prediction = classifier.predict_xml_error(full_path)
+        return {
+            'filepath': full_path,
+            'filename': prediction['filename'],
+            'is_error': prediction['is_error'],
+            'error_probability': prediction['error_probability'],
+            'confidence': prediction['confidence'],
+            'threshold_used': prediction['threshold_used']
+        }
+    except Exception as e:
+        return {
+            'filepath': full_path,
+            'filename': f"Error in prediction: {str(e)}",
+            'is_error': "Error in prediction",
+            'error_probability': None,
+            'confidence': None,
+            'threshold_used': None
+        }
+def predict_multiple_xmls(classifier, input_folder, results_csv, max_workers=None):
+    """
+    Parallel processing version of predict_multiple_xmls
+    
+    Args:
+        classifier: XMLErrorClassifier instance
+        input_folder: Path to folder containing XML files
+        results_csv: Path to output CSV file
+        max_workers: Maximum number of parallel workers (defaults to CPU count - 1)
+    """
+    if max_workers is None:
+        max_workers = max(1, multiprocessing.cpu_count() - 1)
+    
     xml_files = [f for f in os.listdir(input_folder) if f.endswith('.xml')]
-    print(f"Files to predict: {len(xml_files)}")
+    total_files = len(xml_files)
+    print(f"Files to predict: {total_files}")
+    
+    # Prepare arguments for parallel processing
+    process_args = [(classifier, xml_file, input_folder) for xml_file in xml_files]
+    
+    # Process in parallel with progress bar
     predictions_array = []
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_single_prediction, args) for args in process_args]
+        
+        with tqdm(total=total_files, desc="Predicting XML files") as pbar:
+            for future in futures:
+                try:
+                    result = future.result()
+                    predictions_array.append(result)
+                except Exception as e:
+                    print(f"Error in worker process: {e}")
+                pbar.update(1)
     
-    with tqdm(total=len(xml_files), desc="Predicting XML files") as pbar:
-        for xml_file in xml_files:
-            full_path = os.path.join(input_folder, xml_file)
-            try:
-                prediction = classifier.predict_xml_error(full_path)
-                predictions_array.append({
-                    'filepath': full_path,
-                    'filename': prediction['filename'],
-                    'is_error': prediction['is_error'],
-                    'error_probability': prediction['error_probability'],
-                    'confidence': prediction['confidence'],
-                    'threshold_used': prediction['threshold_used']
-                })
-            except Exception as e:
-                predictions_array.append({
-                    'filepath': full_path,
-                    'filename': "Error in prediction",
-                    'is_error': "Error in prediction",
-                    'error_probability': None,
-                    'confidence': None,
-                    'threshold_used': None
-                })
-            pbar.update(1)
+    # Sort predictions by filename to maintain consistent order
+    predictions_array.sort(key=lambda x: x['filename'])
     
+    # Write results to CSV
     with open(results_csv, 'w', newline='') as csvfile:
         fieldnames = ['filepath', 'filename', 'is_error', 'error_probability', 'confidence', 'threshold_used']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for pred in predictions_array:
             writer.writerow(pred)
-    print("\nPredictions Complete!")
-
-
-
+    
+    print(f"\nPredictions Complete! Results saved to {results_csv}")
+    
+    # Return summary statistics
+    success_count = sum(1 for p in predictions_array if p['is_error'] != "Error in prediction")
+    error_count = sum(1 for p in predictions_array if p['is_error'] == "Error in prediction")
+    
+    print(f"\nSummary:")
+    print(f"Successfully processed: {success_count}/{total_files}")
+    print(f"Failed to process: {error_count}/{total_files}")
+    
+    return predictions_array
 def main():
     # Configuration
     PROJECT_ID = "your-project-id"
@@ -636,11 +687,13 @@ def main():
         classifier.save_model("new_model.pkl")
     
     # For predictions
-    classifier = XMLErrorClassifier()
+    classifier = XMLErrorClassifier(project_id=PROJECT_ID)
     if classifier.load_model(MODEL_PATH):
         input_folder = "path/to/predict"
         output_csv = "predictions.csv"
-        predict_multiple_xmls(classifier, input_folder, output_csv)
+        # Use 75% of available CPU cores
+        max_workers = max(1, int(multiprocessing.cpu_count() * 0.75))
+        predict_multiple_xmls(classifier, input_folder, output_csv, max_workers=max_workers)
 
 if __name__ == "__main__":
     main()
