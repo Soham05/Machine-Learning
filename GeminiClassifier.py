@@ -18,6 +18,20 @@ from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from imblearn.over_sampling import SMOTE
 from imblearn.combine import SMOTETomek
 from sklearn.feature_selection import RFE
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import make_scorer, precision_recall_curve, roc_curve
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import VotingClassifier, BaggingClassifier
+from imblearn.combine import SMOTEENN, SMOTETomek
+from imblearn.over_sampling import ADASYN, BorderlineSMOTE, SVMSMOTE
+from imblearn.pipeline import Pipeline as ImbPipeline
+import numpy as np
+from scipy import interp
+from itertools import cycle
+import warnings
+warnings.filterwarnings('ignore')
 
 # Vertex AI and Gemini Imports
 from vertexai.language_models import TextGenerationModel
@@ -344,6 +358,7 @@ class XMLErrorClassifier:
         self.feature_extractor = FeatureExtractor(project_id) if project_id else None
         self.use_checkpoints = use_checkpoints
         self.feature_store = FeatureStore(feature_store_path)
+        self.enhanced_classifier = None
         
         if use_checkpoints:
             self.checkpoint_dir = "checkpoints"
@@ -405,29 +420,16 @@ class XMLErrorClassifier:
                     step=1
                 )
                 X_selected = selector.fit_transform(X_scaled, y)
-            
-            # Split data
-            X_train, X_test, y_train, y_test = train_test_split(
-                X_selected, y, test_size=test_size, stratify=y, random_state=42
-            )
-            
-            # Apply SMOTE-Tomek
-            smote_tomek = SMOTETomek(random_state=42)
-            X_resampled, y_resampled = smote_tomek.fit_resample(X_train, y_train)
-            
-            # Create and train classifier
-            advanced_classifier = AdvancedXMLClassifier()
-            self.classifier = advanced_classifier.create_ensemble()
-            self.classifier.fit(X_resampled, y_resampled)
-            
-            # Evaluate with different thresholds
-            y_prob = self.classifier.predict_proba(X_test)
-            self.threshold = self._find_best_threshold(y_test, y_prob)
-            
+
+            # Create and train enhanced classifier
+            self.enhanced_classifier = EnhancedXMLClassifier(random_state=42)
+            self.enhanced_classifier.fit(X_selected, y)
+
             # Save components
             self.scaler = scaler
             self.selector = selector
-            
+            self.classifier = self.enhanced_classifier
+            self.threshold = self.enhanced_classifier.threshold
             return True
             
         except Exception as e:
@@ -523,54 +525,192 @@ class XMLErrorClassifier:
             print(f"Error during prediction: {e}")
             return None
 
-class AdvancedXMLClassifier:
-    def __init__(self):
-        self.base_models = None
-        self.meta_model = None
-        self.scaler = StandardScaler()
+class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
+    """Enhanced classifier with sophisticated sampling and model architecture"""
     
-    def create_ensemble(self):
-        # create base models
+    def __init__(self, random_state=42):
+        self.random_state = random_state
+        self.sampling_strategy = AdvancedSamplingStrategy(random_state=random_state)
+        self.threshold = None
+        self.calibrated_classifiers = None
         
-        rf1 = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=10,
-            min_samples_split=5,
-            class_weight='balanced',
-            random_state=42
+    def _create_base_models(self):
+        """Create diverse set of base models"""
+        models = {
+            'rf1': RandomForestClassifier(
+                n_estimators=200, max_depth=10, 
+                class_weight='balanced', random_state=self.random_state
+            ),
+            'rf2': RandomForestClassifier(
+                n_estimators=300, max_depth=15,
+                class_weight='balanced_subsample', random_state=self.random_state+1
+            ),
+            'gbc1': GradientBoostingClassifier(
+                n_estimators=200, learning_rate=0.05,
+                max_depth=6, random_state=self.random_state+2
+            ),
+            'gbc2': GradientBoostingClassifier(
+                n_estimators=200, learning_rate=0.1,
+                max_depth=4, random_state=self.random_state+3
+            ),
+            'mlp': MLPClassifier(
+                hidden_layer_sizes=(100, 50),
+                max_iter=1000, random_state=self.random_state+4
+            ),
+            'svm': SVC(
+                probability=True, class_weight='balanced',
+                random_state=self.random_state+5
+            )
+        }
+        
+        # Create bagging ensembles for each base model
+        bagged_models = {}
+        for name, model in models.items():
+            bagged_models[f'bagged_{name}'] = BaggingClassifier(
+                base_estimator=model,
+                n_estimators=10,
+                random_state=self.random_state
+            )
+        
+        return {**models, **bagged_models}
+    
+    def _create_advanced_ensemble(self):
+        """Create multi-level stacking ensemble with calibration"""
+        base_models = self._create_base_models()
+        
+        # First level: Voting Classifier with calibrated models
+        self.calibrated_classifiers = {}
+        for name, model in base_models.items():
+            calibrated = CalibratedClassifierCV(
+                model, cv=5, method='sigmoid',
+                n_jobs=-1
+            )
+            self.calibrated_classifiers[name] = calibrated
+        
+        # Create voting classifier with calibrated models
+        voting_clf = VotingClassifier(
+            estimators=[(name, clf) for name, clf in self.calibrated_classifiers.items()],
+            voting='soft',
+            weights=[2 if 'bagged' in name else 1 for name in self.calibrated_classifiers.keys()]
         )
         
-        rf2 = RandomForestClassifier(
-            n_estimators=150,
-            max_depth=15,
-            min_samples_split=3,
-            class_weight='balanced',
-            random_state=43
+        return voting_clf
+    
+    def fit(self, X, y):
+        """Fit the classifier with nested cross-validation"""
+        # Create and configure the ensemble
+        self.classifier = self._create_advanced_ensemble()
+        
+        # Select best sampling strategy
+        best_sampler = self.sampling_strategy.select_best_sampler(X, y, self.classifier)
+        
+        # Resample data
+        X_resampled, y_resampled = best_sampler.fit_resample(X, y)
+        
+        # Fit the ensemble
+        self.classifier.fit(X_resampled, y_resampled)
+        
+        # Optimize threshold using cross-validation
+        self._optimize_threshold(X_resampled, y_resampled)
+        
+        return self
+    
+    def _optimize_threshold(self, X, y):
+        """Optimize classification threshold using cross-validation"""
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=self.random_state)
+        thresholds = np.linspace(0.1, 0.9, 50)
+        
+        threshold_scores = []
+        
+        for train_idx, val_idx in cv.split(X, y):
+            X_train, X_val = X[train_idx], X[val_idx]
+            y_train, y_val = y[train_idx], y[val_idx]
             
-        )
-        
-        gbc = GradientBoostingClassifier(
-            n_estimators=100,
-            learning_rate=0.1,
-            max_depth=5,
-            random_state=44
+            # Fit on training data
+            self.classifier.fit(X_train, y_train)
             
-        )
-        
-        # Create stacking classifier
-        estimators = [
-             ('rf1',rf1),
-             ('rf2',rf2),
-             ('gbc',gbc)
+            # Get probabilities for validation set
+            y_prob = self.classifier.predict_proba(X_val)[:, 1]
             
-        ]
+            # Calculate metrics for different thresholds
+            for threshold in thresholds:
+                y_pred = (y_prob >= threshold).astype(int)
+                recall = recall_score(y_val, y_pred)
+                precision = precision_score(y_val, y_pred)
+                
+                # Custom metric heavily favoring recall
+                score = (0.9 * recall + 0.1 * precision)
+                threshold_scores.append((threshold, score))
         
-        return StackingClassifier(
-            estimators=estimators,
-            final_estimator=LogisticRegression(class_weight='balanced'),
-            cv = 5,
-            n_jobs = -1
-        )
+        # Select threshold that maximizes average score
+        threshold_avg = {}
+        for threshold, score in threshold_scores:
+            if threshold not in threshold_avg:
+                threshold_avg[threshold] = []
+            threshold_avg[threshold].append(score)
+        
+        best_threshold = max(
+            threshold_avg.items(),
+            key=lambda x: np.mean(x[1])
+        )[0]
+        
+        self.threshold = best_threshold
+    
+    def predict_proba(self, X):
+        """Predict class probabilities"""
+        return self.classifier.predict_proba(X)
+    
+    def predict(self, X):
+        """Predict classes using optimized threshold"""
+        probas = self.predict_proba(X)[:, 1]
+        return (probas >= self.threshold).astype(int)
+
+# Advanced sampling implementation
+class AdvancedSamplingStrategy:
+    """Advanced sampling strategy with multiple techniques and cross-validation"""
+    
+    def __init__(self, random_state=42):
+        self.random_state = random_state
+        self.best_sampler = None
+        self.samplers = {
+            'smote_tomek': SMOTETomek(random_state=random_state),
+            'smote_enn': SMOTEENN(random_state=random_state),
+            'adasyn': ADASYN(random_state=random_state, n_neighbors=5),
+            'borderline1': BorderlineSMOTE(random_state=random_state, kind='borderline-1'),
+            'borderline2': BorderlineSMOTE(random_state=random_state, kind='borderline-2'),
+            'svm_smote': SVMSMOTE(random_state=random_state)
+        }
+    
+    def select_best_sampler(self, X, y, classifier, cv=5):
+        """Select best sampling strategy using cross-validation"""
+        best_score = 0
+        best_sampler = None
+        
+        # Custom scorer focusing on recall but considering precision
+        custom_scorer = make_scorer(lambda y_true, y_pred: 
+                                  0.8 * recall_score(y_true, y_pred) + 
+                                  0.2 * precision_score(y_true, y_pred))
+        
+        for name, sampler in self.samplers.items():
+            pipeline = ImbPipeline([
+                ('sampler', sampler),
+                ('classifier', classifier)
+            ])
+            
+            # Cross validation with stratification
+            cv_scores = cross_val_score(
+                pipeline, X, y,
+                scoring=custom_scorer,
+                cv=StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.random_state)
+            )
+            
+            mean_score = np.mean(cv_scores)
+            if mean_score > best_score:
+                best_score = mean_score
+                best_sampler = sampler
+                
+        self.best_sampler = best_sampler
+        return self.best_sampler
 
 # Parallel XML Prediction Implementation
 
@@ -652,6 +792,7 @@ def predict_multiple_xmls(classifier, input_folder, results_csv, max_workers=Non
     print(f"Failed to process: {error_count}/{total_files}")
     
     return predictions_array
+    
 def main():
     # Configuration
     PROJECT_ID = "your-project-id"
@@ -675,10 +816,13 @@ def main():
     features, labels, scaler, selector = classifier.extract_and_store_features()
     print("Features extracted and stored")
     
-    # Train model using stored features
+    # Train enhanced model using stored features
+    print("Training enhanced classifier...")
     if classifier.train_classifier(use_stored_features=True):
         print("Model training completed successfully")
-        classifier.save_model(MODEL_PATH)
+        print(f"Selected sampling strategy: {classifier.enhanced_classifier.sampling_strategy.best_sampler.__class__.__name__}")
+        print(f"Optimized threshold: {classifier.enhanced_classifier.threshold:.3f}")
+        classifier.save_model(MODEL_PATH))
     
     # For future training without re-extracting features:
     classifier = XMLErrorClassifier()  # No need for folders/csvs
@@ -687,13 +831,13 @@ def main():
         classifier.save_model("new_model.pkl")
     
     # For predictions
-    classifier = XMLErrorClassifier(project_id=PROJECT_ID)
-    if classifier.load_model(MODEL_PATH):
+    test_classifier = XMLErrorClassifier(project_id=PROJECT_ID)
+    if test_classifier.load_model(MODEL_PATH):
         input_folder = "path/to/predict"
         output_csv = "predictions.csv"
         # Use 75% of available CPU cores
         max_workers = max(1, int(multiprocessing.cpu_count() * 0.75))
-        predict_multiple_xmls(classifier, input_folder, output_csv, max_workers=max_workers)
+        predict_multiple_xmls(test_classifier, input_folder, output_csv, max_workers=max_workers)
 
 if __name__ == "__main__":
     main()
