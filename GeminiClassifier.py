@@ -567,7 +567,7 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         bagged_models = {}
         for name, model in models.items():
             bagged_models[f'bagged_{name}'] = BaggingClassifier(
-                base_estimator=model,
+                estimator=model,
                 n_estimators=10,
                 random_state=self.random_state
             )
