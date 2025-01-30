@@ -542,42 +542,32 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         self.n_jobs = n_jobs
         self.threshold = None
         
-    def _create_efficient_ensemble(self):
-        """Create efficient yet diverse model ensemble"""
-        base_models = [
-            ('rf', RandomForestClassifier(
-                n_estimators=200,
-                max_depth=10,
-                class_weight={0:1, 1:5},  
-                n_jobs=self.n_jobs,
-                random_state=self.random_state
-            )),
-            ('gbc', GradientBoostingClassifier(
-                n_estimators=100,
-                learning_rate=0.1,
-                max_depth=5,
-                random_state=self.random_state+1
-            )),
-            ('lgbm', LGBMClassifier(
-                n_estimators=200,
-                class_weight={0:1, 1:5},
-                n_jobs=self.n_jobs,
-                random_state=self.random_state+2
-            ))
-        ]
-        
-        return VotingClassifier(
-            estimators=base_models,
-            voting='soft',
-            n_jobs=self.n_jobs
-        )
-    
     def fit(self, X, y):
         """Efficient training process with ADASYN"""
         print("Starting model training...")
         
-        # Create and configure the ensemble
-        self.classifier = self._create_efficient_ensemble()
+        # Create base models separately instead of using VotingClassifier
+        self.rf = RandomForestClassifier(
+            n_estimators=200,
+            max_depth=10,
+            class_weight={0:1, 1:5},  
+            n_jobs=self.n_jobs,
+            random_state=self.random_state
+        )
+        
+        self.gbc = GradientBoostingClassifier(
+            n_estimators=100,
+            learning_rate=0.1,
+            max_depth=5,
+            random_state=self.random_state+1
+        )
+        
+        self.lgbm = LGBMClassifier(
+            n_estimators=200,
+            class_weight={0:1, 1:5},
+            n_jobs=self.n_jobs,
+            random_state=self.random_state+2
+        )
         
         # Calculate sampling ratio based on class distribution
         n_majority = sum(y == 0)
@@ -587,7 +577,7 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         try:
             adasyn = ADASYN(
                 sampling_strategy=desired_ratio,
-                n_neighbors=5,  # Small neighborhood for more focused sampling
+                n_neighbors=5,
                 random_state=self.random_state,
                 n_jobs=self.n_jobs
             )
@@ -595,7 +585,6 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
             
         except RuntimeError as e:
             print(f"ADASYN failed: {e}. Falling back to RandomOverSampler...")
-            # Fallback to simpler oversampling if ADASYN fails
             ros = RandomOverSampler(
                 sampling_strategy=desired_ratio,
                 random_state=self.random_state
@@ -606,18 +595,20 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         print(f"Resampled class distribution: {np.bincount(y_resampled)}")
         print(f"Training data shape after sampling: {X_resampled.shape}")
         
-        # Fit the ensemble with sample weights
-        print("Training ensemble...")
+        # Calculate sample weights
         sample_weights = compute_sample_weights(y_resampled)
-        self.classifier.fit(X_resampled, y_resampled, 
-                          rf__sample_weight=sample_weights,
-                          lgbm__sample_weight=sample_weights)
+        
+        # Train each model separately with sample weights
+        print("Training ensemble...")
+        self.rf.fit(X_resampled, y_resampled, sample_weight=sample_weights)
+        self.gbc.fit(X_resampled, y_resampled)  # GBM handles class imbalance internally
+        self.lgbm.fit(X_resampled, y_resampled, sample_weight=sample_weights)
         
         # Optimize threshold
         print("Optimizing threshold...")
         self._optimize_threshold(X_resampled, y_resampled)
         
-        return self
+        return self    
     
     def _optimize_threshold(self, X, y):
         """Threshold optimization with F-beta score"""
@@ -643,9 +634,16 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         self.threshold = best_threshold
     
     def predict_proba(self, X):
-        return self.classifier.predict_proba(X)
+        """Average predictions from all models"""
+        rf_pred = self.rf.predict_proba(X)
+        gbc_pred = self.gbc.predict_proba(X)
+        lgbm_pred = self.lgbm.predict_proba(X)
+        
+        # Average the probabilities
+        return (rf_pred + gbc_pred + lgbm_pred) / 3
     
     def predict(self, X):
+        """Make predictions using the optimized threshold"""
         probas = self.predict_proba(X)[:, 1]
         return (probas >= self.threshold).astype(int)
 
