@@ -13,6 +13,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier, StackingClassifier, GradientBoostingClassifier
 from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
+from catboost import CatBoostClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
@@ -541,33 +543,63 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.threshold = None
-        
-    def fit(self, X, y):
-        """Efficient training process with ADASYN"""
-        print("Starting model training...")
-        
-        # Create base models separately instead of using VotingClassifier
-        self.rf = RandomForestClassifier(
-            n_estimators=200,
-            max_depth=10,
-            class_weight={0:1, 1:5},  
-            n_jobs=self.n_jobs,
+        # Base estimators
+            # Base estimators
+
+        self.base_estimators = [
+            ('rf', RandomForestClassifier(
+                n_estimators=200,
+                max_depth=10,
+                class_weight={0:1, 1:5},
+                n_jobs=self.n_jobs,
+                random_state=self.random_state
+            )),
+            ('gbc', GradientBoostingClassifier(
+                n_estimators=100,
+                learning_rate=0.1,
+                max_depth=5,
+                random_state=self.random_state+1
+            )),
+            ('lgbm', LGBMClassifier(
+                n_estimators=200,
+                class_weight={0:1, 1:5},
+                n_jobs=self.n_jobs,
+                random_state=self.random_state+2
+            )),
+            ('xgb', XGBClassifier(
+                n_estimators=200,
+                learning_rate=0.1,
+                max_depth=5,
+                scale_pos_weight=5,
+                n_jobs=self.n_jobs,
+                random_state=self.random_state+3
+            )),
+            ('catboost', CatBoostClassifier(
+                iterations=200,
+                learning_rate=0.1,
+                depth=5,
+                scale_pos_weight=5,
+                random_seed=self.random_state+4,
+                verbose=0
+            ))
+        ]
+            # Meta classifier
+        self.meta_classifier = LogisticRegression(
+            class_weight='balanced',
+            max_iter=1000,
             random_state=self.random_state
         )
         
-        self.gbc = GradientBoostingClassifier(
-            n_estimators=100,
-            learning_rate=0.1,
-            max_depth=5,
-            random_state=self.random_state+1
+        # Stacking Classifier
+        self.classifier = StackingClassifier(
+            estimators=self.base_estimators,
+            final_estimator=self.meta_classifier,
+            cv=5,
+            stack_method='predict_proba'
         )
         
-        self.lgbm = LGBMClassifier(
-            n_estimators=200,
-            class_weight={0:1, 1:5},
-            n_jobs=self.n_jobs,
-            random_state=self.random_state+2
-        )
+    def fit(self, X, y):
+        """Efficient training process with ADASYN"""
         
         # Calculate sampling ratio based on class distribution
         n_majority = sum(y == 0)
@@ -600,9 +632,7 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         
         # Train each model separately with sample weights
         print("Training ensemble...")
-        self.rf.fit(X_resampled, y_resampled, sample_weight=sample_weights)
-        self.gbc.fit(X_resampled, y_resampled)  # GBM handles class imbalance internally
-        self.lgbm.fit(X_resampled, y_resampled, sample_weight=sample_weights)
+        self.classifier.fit(X_resampled, y_resampled)
         
         # Optimize threshold
         print("Optimizing threshold...")
@@ -634,13 +664,7 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
         self.threshold = best_threshold
     
     def predict_proba(self, X):
-        """Average predictions from all models"""
-        rf_pred = self.rf.predict_proba(X)
-        gbc_pred = self.gbc.predict_proba(X)
-        lgbm_pred = self.lgbm.predict_proba(X)
-        
-        # Average the probabilities
-        return (rf_pred + gbc_pred + lgbm_pred) / 3
+        return self.classifier.predict_proba(X)
     
     def predict(self, X):
         """Make predictions using the optimized threshold"""
