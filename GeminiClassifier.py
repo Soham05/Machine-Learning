@@ -548,6 +548,9 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
     """Optimized classifier with ADASYN sampling"""
     
     def __init__(self, random_state=42, n_jobs=-1):
+        self.random_state = random_state
+        self.n_jobs = n_jobs
+        self.threshold = None
         self.base_estimators = [
             ('rf', RandomForestClassifier(
                 n_estimators=500,  # Increased from 200
