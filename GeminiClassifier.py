@@ -649,8 +649,24 @@ class EnhancedXMLClassifier(BaseEstimator, ClassifierMixin):
 
 def compute_sample_weights(y):
     """Compute sample weights inversely proportional to class frequencies"""
-    class_weights = compute_class_weight('balanced', classes=np.unique(y), y=y)
-    return np.array([class_weights[yi] for yi in y])
+    print(f"y shape: {y.shape}, y type: {type(y)}")  # Debug: Check shape and type of y
+    unique_classes = np.unique(y)
+    print(f"Unique classes in y: {unique_classes}")  # Debug: Check unique classes
+    class_weights = compute_class_weight('balanced', classes=unique_classes, y=y)
+    print(f"class_weights: {class_weights}, type: {type(class_weights)}")  # Debug: Check class_weights
+    
+    # Ensure class_weights is a 1D array
+    if not isinstance(class_weights, np.ndarray):
+        class_weights = np.array(class_weights)
+    
+    # Map class weights to sample weights
+    sample_weights = np.zeros_like(y, dtype=np.float64)
+    for i, cls in enumerate(unique_classes):
+        sample_weights[y == cls] = class_weights[i]
+    
+    print(f"sample_weights shape: {sample_weights.shape}, type: {sample_weights.dtype}")  # Debug: Check sample_weights
+    print(f"sample_weights[:10]: {sample_weights[:10]}")  # Debug: Check first 10 sample weights
+    return sample_weights
     
 # Parallel XML Prediction Implementation
 
