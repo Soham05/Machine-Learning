@@ -90,6 +90,13 @@ if 'Footnote' in df.columns:
     print("Footnote distribution:")
     print(footnote_counts.head(10))
 
+# Analyze missing data by measure
+missing_by_measure = df.groupby('Measure Name')['Excess Readmission Ratio'].agg(['count', 'size'])
+missing_by_measure['missing'] = missing_by_measure['size'] - missing_by_measure['count']
+missing_by_measure['missing_pct'] = (missing_by_measure['missing'] / missing_by_measure['size']) * 100
+print("Missing data by measure:")
+print(missing_by_measure.sort_values('missing_pct'))
+
 print("\n" + "=" * 60)
 print("EXPLORATION COMPLETE")
 print("=" * 60)
