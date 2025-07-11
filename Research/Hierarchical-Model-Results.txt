@@ -1,11 +1,12 @@
+
 1. LOADING FINAL ANALYTICAL DATASET
 --------------------------------------------------
-Dataset loaded successfully
+✅ Dataset loaded successfully
    - Shape: 2152 hospitals, 15 variables
    - Counties: 178
    - Hospitals per county (avg): 12.1
 
-   Primary Outcome: Excess Readmission Ratio
+   Primary Outcome: ERR (cleaned from 'Excess Readmission Ratio')
    - Mean: 0.999
    - Std: 0.064
    - Range: 0.780 to 1.287
@@ -22,30 +23,63 @@ min        1.000000
 50%        7.000000
 75%       21.000000
 max       73.000000
-Name: (Excess Readmission Ratio, count), dtype: float64
+Name: (ERR, count), dtype: float64
 - Within-county outcome variation: 0.060
 - Counties with single hospitals: 53 (29.8%)
 
 3. MODEL 1: NULL MODEL (Baseline)
 --------------------------------------------------
 Fitting null model: ERR ~ 1 + (1|county_group)
-Error fitting null model: invalid syntax (<unknown>, line 1)
-   Check outcome variable name and data structure
+✅ Null model fitted successfully
+   - Log-likelihood: 2858.29
+   - AIC: nan
+   - BIC: nan
+
+   Variance Components:
+   - County-level variance (σ²_u): 0.000118
+   - Hospital-level variance (σ²_e): 0.004000
+   - Total variance: 0.004119
+
+   📊 INTRACLASS CORRELATION COEFFICIENT (ICC): 0.0287
+   - This means 2.9% of variance is between counties
+   - And 97.1% of variance is within counties (between hospitals)
+   - Interpretation: Very low clustering - hierarchical modeling may not be needed
 
 4. MODEL 2: LEVEL 1 MODEL (Hospital Controls)
 --------------------------------------------------
 Fitting Level 1 model: ERR ~ hospital_vars + (1|county_group)
- Error fitting Level 1 model: invalid syntax (<unknown>, line 1)
+✅ Level 1 model fitted successfully
+   - Log-likelihood: 2923.74
+   - AIC: nan
+   - BIC: nan
+
+   Variance Components (after adding hospital controls):
+   - County-level variance (σ²_u): 0.000104
+   - Hospital-level variance (σ²_e): 0.003707
+   - Total variance: 0.003811
+
+   📊 VARIANCE EXPLAINED BY HOSPITAL CHARACTERISTICS:
+   - Variance reduction: 7.5%
+   - Remaining county variance: 2.7%
+
+   Fixed Effects (Hospital Characteristics):
+                                      Coef. Std.Err.        z  P>|z|  [0.025  0.975]
+Intercept                             0.999    0.003  288.030  0.000   0.992   1.006
+Ownership_Category_Clean[T.Private]   0.003    0.004    0.846  0.398  -0.004   0.010
+Ownership_Category_Clean[T.Public]   -0.011    0.005   -2.273  0.023  -0.021  -0.002
+Hospital_Rating_Numeric_Imputed_std  -0.017    0.001  -12.773  0.000  -0.020  -0.014
+Rating_Missing                       -0.006    0.005   -1.349  0.177  -0.015   0.003
+Group Var                             0.000    0.001                                
 
 5. MODEL 3: FULL MODEL (Social Determinants + Hospital Controls)
 --------------------------------------------------
 Fitting full model: ERR ~ hospital_vars + county_vars + (1|county_group)
- Error fitting full model: 
+❌ Error fitting full model: 
    This might be due to multicollinearity or model complexity
 
 6. VARIANCE DECOMPOSITION ANALYSIS
 --------------------------------------------------
- Error in variance decomposition: name 'sigma2_u' is not defined
+❌ Error in variance decomposition: name 'sigma2_u_full' is not defined
 
 7. MODEL DIAGNOSTICS
 --------------------------------------------------
@@ -61,12 +95,14 @@ Checking multicollinearity (VIF scores):
 1                                     Rating_Missing  1.136000
 0                Hospital_Rating_Numeric_Imputed_std  1.109015
 
- No concerning multicollinearity detected
+✅ No concerning multicollinearity detected
 
- MODEL FIT COMPARISON:
+📊 MODEL FIT COMPARISON:
 Model                AIC        BIC        Log-Likelihood 
 -------------------------------------------------------
- Error in model diagnostics: name 'null_results' is not defined
+Null Model           nan        nan        2858.29        
+Level 1 Model        nan        nan        2923.74        
+❌ Error in model diagnostics: name 'full_results' is not defined
 
 ================================================================================
 STEP 3A COMPLETED - HIERARCHICAL MODELING RESULTS SUMMARY
@@ -92,6 +128,6 @@ STEP 3A COMPLETED - HIERARCHICAL MODELING RESULTS SUMMARY
    4. Consider additional model specifications
 
 
- Hierarchical modeling analysis complete!
+✅ Hierarchical modeling analysis complete!
    Results saved: variance_decomposition_analysis.png
    Ready for manuscript preparation phase.
