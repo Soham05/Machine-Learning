@@ -307,3 +307,38 @@ high_school_graduation_raw_value:
 Number of unique counties: 179
 Hospitals per county (mean): 12.50
 Counties with multiple hospitals: 125
+
+********************************************************************************************************
+
+=== STEP 2C: HEALTHCARE ACCESS RATIO VARIABLES CHECK ===
+
+
+ratio_of_population_to_primary_care_physicians:
+  Count: 2153
+  Mean: 1630.17
+  Std: 912.27
+  Min: 170.37
+  Max: 14678.00
+  Missing: 84
+
+ratio_of_population_to_mental_health_providers:
+  Count: 2153
+  Mean: 662.51
+  Std: 922.99
+  Min: 36.17
+  Max: 18277.00
+  Missing: 84
+
+
+ALL AVAILABLE HEALTHCARE-RELATED VARIABLES:
+==================================================
+- uninsured_adults_raw_value
+- primary_care_physicians_raw_value
+- ratio_of_population_to_primary_care_physicians
+- mental_health_providers_raw_value
+- ratio_of_population_to_mental_health_providers
+- poor_or_fair_health_raw_value
+- poor_physical_health_days_raw_value
+- poor_mental_health_days_raw_value
+- uninsured_children_raw_value
+- other_primary_care_providers_raw_value
