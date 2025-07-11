@@ -91,3 +91,82 @@ Complete cases for analysis: 2027
 Measure Name verification:
 Unique values in Measure Name: ['READM-30-PN-HRRP']
 Count of READM-30-PN-HRRP records: 2237
+
+*********************************************************************************************
+
+=== STEP 1C: DATA CLEANING FOR LEVEL 1 VARIABLES ===
+
+BEFORE CLEANING:
+==============================
+Total sample size: 2237
+Ownership_Category distribution:
+Ownership_Category
+Private       1543
+Non-Profit     372
+Public         311
+Other           11
+Name: count, dtype: int64
+Hospital_Rating_Numeric missing: 210
+
+
+1. HANDLING 'OTHER' OWNERSHIP CATEGORY
+==================================================
+After combining 'Other' with 'Private':
+Ownership_Category_Clean
+Private       1554
+Non-Profit     372
+Public         311
+Name: count, dtype: int64
+
+
+2. HANDLING MISSING HOSPITAL_RATING_NUMERIC VALUES
+==================================================
+Created missing indicator: 210 hospitals with missing ratings
+Mean imputation value: 3.11
+
+
+3. FINAL LEVEL 1 VARIABLES SUMMARY
+==================================================
+Selected Level 1 (Hospital) variables:
+- Ownership_Category_Clean
+- Hospital_Rating_Numeric_Imputed
+- Rating_Missing
+
+Final Ownership_Category_Clean distribution:
+Ownership_Category_Clean
+Private       1554
+Non-Profit     372
+Public         311
+Name: count, dtype: int64
+
+Final Hospital_Rating_Numeric_Imputed distribution:
+count    2237.000000
+mean        3.112481
+std         1.104219
+min         1.000000
+25%         2.000000
+50%         3.000000
+75%         4.000000
+max         5.000000
+Name: Hospital_Rating_Numeric_Imputed, dtype: float64
+
+Rating_Missing distribution:
+Rating_Missing
+0    2027
+1     210
+Name: count, dtype: int64
+
+
+4. COMPLETE CASES CHECK
+==================================================
+Complete cases for Level 1 analysis: 2237
+Percentage of complete cases: 100.0%
+
+
+5. SAVE CLEANED DATASET
+==================================================
+Cleaned dataset saved as: merged_social_determinants_analysis_level1_cleaned.csv
+
+
+STEP 1C COMPLETED SUCCESSFULLY!
+==================================================
