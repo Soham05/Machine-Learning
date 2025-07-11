@@ -1,0 +1,136 @@
+
+1. BASIC INFORMATION:
+   Shape: (19175, 47)
+   Memory usage: 9.03 MB
+
+2. YEAR DISTRIBUTION:
+   2020: 3,194 counties
+   2021: 3,194 counties
+   2022: 3,194 counties
+   2023: 3,194 counties
+   2024: 3,195 counties
+   2025: 3,204 counties
+
+3. GEOGRAPHIC COVERAGE:
+   Unique states: 52
+   Unique counties: 1940
+   Unique FIPS codes: 3205
+
+4. MISSING DATA ANALYSIS:
+   Variables with missing data: 41
+
+   Top 15 variables with most missing data:
+   %_females_raw_value: 12,787.0 (66.7%)
+   %_native_hawaiian_other_pacific_islander_raw_value: 9,593.0 (50.0%)
+   %_american_indian_alaska_native_raw_value: 9,593.0 (50.0%)
+   residential_segregation_black_white_raw_value: 6,403.0 (33.4%)
+   high_school_graduation_raw_value: 3,480.0 (18.1%)
+   ratio_of_population_to_mental_health_providers: 1,220.0 (6.4%)
+   mental_health_providers_raw_value: 1,220.0 (6.4%)
+   ratio_of_population_to_primary_care_physicians: 920.0 (4.8%)
+   primary_care_physicians_raw_value: 920.0 (4.8%)
+   other_primary_care_providers_raw_value: 97.0 (0.5%)
+   income_inequality_raw_value: 61.0 (0.3%)
+   %_rural_raw_value: 36.0 (0.2%)
+   median_household_income_ci_high: 16.0 (0.1%)
+   median_household_income_ci_low: 16.0 (0.1%)
+   median_household_income_raw_value: 16.0 (0.1%)
+5. DATA COMPLETENESS BY YEAR:
+   2020: 98.7% complete (1,965 missing cells)
+   2021: 98.4% complete (2,385 missing cells)
+   2022: 96.2% complete (5,674 missing cells)
+   2023: 91.9% complete (12,223 missing cells)
+   2024: 92.0% complete (12,051 missing cells)
+   2025: 91.8% complete (12,352 missing cells)
+6. KEY VARIABLES ANALYSIS:
+
+   ECONOMIC VARIABLES:
+   median_household_income_raw_value: 0.1% missing
+      Mean: 59124.48, Std: 15815.36
+   children_in_poverty_raw_value: 0.1% missing
+      Mean: 0.20, Std: 0.08
+   unemployment_raw_value: 0.1% missing
+      Mean: 0.04, Std: 0.02
+   income_inequality_raw_value: 0.3% missing
+      Mean: 4.53, Std: 0.79
+
+  7. HEALTHCARE ACCESS VARIABLES:
+   uninsured_adults_raw_value: 0.1% missing
+      Mean: 0.1346, Std: 0.0609
+   primary_care_physicians_raw_value: 4.8% missing
+      Mean: 0.0005, Std: 0.0004
+   mental_health_providers_raw_value: 6.4% missing
+      Mean: 0.0019, Std: 0.0021
+  8. EDUCATION VARIABLES:
+   some_college_raw_value: 0.0% missing
+      Mean: 0.59, Std: 0.12
+   high_school_graduation_raw_value: 18.1% missing
+      Mean: 0.88, Std: 0.07
+9.DEMOGRAPHIC VARIABLES:
+   %_65_and_older_raw_value: 0.0% missing
+      Mean: 0.20, Std: 0.05
+   %_non_hispanic_black_raw_value: 0.0% missing
+      Mean: 0.09, Std: 0.14
+   %_american_indian_alaska_native_raw_value: 50.0% missing
+      Mean: 0.02, Std: 0.08
+   %_asian_raw_value: 0.0% missing
+      Mean: 0.02, Std: 0.03
+   %_hispanic_raw_value: 0.0% missing
+      Mean: 0.10, Std: 0.14
+   %_native_hawaiian_other_pacific_islander_raw_value: 50.0% missing
+      Mean: 0.00, Std: 0.01
+   %_non_hispanic_white_raw_value: 0.0% missing
+      Mean: 0.75, Std: 0.20
+   %_rural_raw_value: 0.2% missing
+      Mean: 0.60, Std: 0.32
+   %_females_raw_value: 66.7% missing
+      Mean: 0.50, Std: 0.02
+8. COLUMN NAMES:
+Available columns in final dataset:
+   1. state_fips_code
+   2. county_fips_code
+   3. 5_digit_fips_code
+   4. state_abbreviation
+   5. name
+   6. release_year
+   7. median_household_income_raw_value
+   8. median_household_income_ci_low
+   9. median_household_income_ci_high
+   10. children_in_poverty_raw_value
+   11. children_in_poverty_ci_low
+   12. children_in_poverty_ci_high
+   13. unemployment_raw_value
+   14. income_inequality_raw_value
+   15. some_college_raw_value
+   16. high_school_graduation_raw_value
+   17. uninsured_adults_raw_value
+   18. primary_care_physicians_raw_value
+   19. ratio_of_population_to_primary_care_physicians
+   20. mental_health_providers_raw_value
+   21. ratio_of_population_to_mental_health_providers
+   22. severe_housing_problems_raw_value
+   23. social_associations_raw_value
+   24. residential_segregation_black_white_raw_value
+   25. %_65_and_older_raw_value
+   26. %_non_hispanic_black_raw_value
+   27. %_american_indian_alaska_native_raw_value
+   28. %_asian_raw_value
+   29. %_hispanic_raw_value
+   30. %_native_hawaiian_other_pacific_islander_raw_value
+   31. %_non_hispanic_white_raw_value
+   32. %_rural_raw_value
+   33. %_females_raw_value
+   34. population_raw_value
+   35. adult_smoking_raw_value
+   36. adult_obesity_raw_value
+   37. excessive_drinking_raw_value
+   38. physical_inactivity_raw_value
+   39. poor_or_fair_health_raw_value
+   40. poor_physical_health_days_raw_value
+   41. poor_mental_health_days_raw_value
+   42. children_in_single_parent_households_raw_value
+   43. food_insecurity_raw_value
+   44. homeownership_raw_value
+   45. %_not_proficient_in_english_raw_value
+   46. uninsured_children_raw_value
+   47. other_primary_care_providers_raw_value
