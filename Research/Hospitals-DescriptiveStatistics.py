@@ -46,19 +46,29 @@ print(crosstab2)
 print("\n\n4. PRIMARY OUTCOME VARIABLE")
 print("="*50)
 
-print("\nREADM-30-PN-HRRP (Excess Readmission Ratio):")
-print(df['READM-30-PN-HRRP'].describe())
-print(f"Missing values: {df['READM-30-PN-HRRP'].isna().sum()}")
+print("\nExcess Readmission Ratio:")
+print(df['Excess Readmission Ratio'].describe())
+print(f"Missing values: {df['Excess Readmission Ratio'].isna().sum()}")
 
 # Check for extreme outliers
 print(f"\nOutlier check (values beyond 3 standard deviations):")
-mean_err = df['READM-30-PN-HRRP'].mean()
-std_err = df['READM-30-PN-HRRP'].std()
-outliers = df[(df['READM-30-PN-HRRP'] < mean_err - 3*std_err) | 
-              (df['READM-30-PN-HRRP'] > mean_err + 3*std_err)]
+mean_err = df['Excess Readmission Ratio'].mean()
+std_err = df['Excess Readmission Ratio'].std()
+outliers = df[(df['Excess Readmission Ratio'] < mean_err - 3*std_err) | 
+              (df['Excess Readmission Ratio'] > mean_err + 3*std_err)]
 print(f"Number of potential outliers: {len(outliers)}")
+
+# Additional check for the range mentioned in your summary
+print(f"\nExpected range check (your summary mentioned 0.780-1.287):")
+print(f"Actual min: {df['Excess Readmission Ratio'].min()}")
+print(f"Actual max: {df['Excess Readmission Ratio'].max()}")
 
 print("\n\n5. SAMPLE SIZE CONFIRMATION")
 print("="*50)
 print(f"Total hospitals in dataset: {len(df)}")
-print(f"Complete cases for analysis: {len(df.dropna(subset=['Hospital_Type_Category', 'Ownership_Category', 'Has_Emergency_Services', 'Hospital_Rating_Numeric', 'READM-30-PN-HRRP']))}")
+print(f"Complete cases for analysis: {len(df.dropna(subset=['Hospital_Type_Category', 'Ownership_Category', 'Has_Emergency_Services', 'Hospital_Rating_Numeric', 'Excess Readmission Ratio']))}")
+
+# Verify the Measure Name filter
+print(f"\nMeasure Name verification:")
+print(f"Unique values in Measure Name: {df['Measure Name'].unique()}")
+print(f"Count of READM-30-PN-HRRP records: {(df['Measure Name'] == 'READM-30-PN-HRRP').sum()}")
