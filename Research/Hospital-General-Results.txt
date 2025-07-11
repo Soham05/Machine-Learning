@@ -1,0 +1,43 @@
+1. HOSPITAL DATASET OVERVIEW:
+Total rows: 5,384
+Total columns: 38
+Dataset shape: (5384, 38)
+Columns Name and Types: Facility ID                                          object
+Facility Name                                        object
+Address                                              object
+City/Town                                            object
+State                                                object
+ZIP Code                                              int64
+County/Parish                                        object
+Telephone Number                                     object
+Hospital Type                                        object
+Hospital Ownership                                   object
+Emergency Services                                   object
+Meets criteria for birthing friendly designation     object
+Hospital overall rating                              object
+Hospital overall rating footnote                     object
+MORT Group Measure Count                             object
+Count of Facility MORT Measures                      object
+Count of MORT Measures Better                        object
+Count of MORT Measures No Different                  object
+Count of MORT Measures Worse                         object
+MORT Group Footnote                                 float64
+Safety Group Measure Count                           object
+Count of Facility Safety Measures                    object
+Count of Safety Measures Better                      object
+Count of Safety Measures No Different                object
+Count of Safety Measures Worse                       object
+Safety Group Footnote                               float64
+READM Group Measure Count                            object
+Count of Facility READM Measures                     object
+Count of READM Measures Better                       object
+Count of READM Measures No Different                 object
+Count of READM Measures Worse                        object
+READM Group Footnote                                float64
+Pt Exp Group Measure Count                           object
+Count of Facility Pt Exp Measures                    object
+Pt Exp Group Footnote                               float64
+TE Group Measure Count                               object
+Count of Facility TE Measures                        object
+TE Group Footnote                                   float64
+dtype: object
