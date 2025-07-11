@@ -154,3 +154,89 @@ print("Cleaned dataset saved as: merged_social_determinants_analysis_level1_clea
 print("\n\nSTEP 1C COMPLETED SUCCESSFULLY!")
 print("="*50)
 print("Ready for Step 2: Level 2 (County) Variable Selection")
+
+*****************************************************************************************************************************************************
+import pandas as pd
+import numpy as np
+
+# Load the cleaned dataset
+df = pd.read_csv('merged_social_determinants_analysis_level1_cleaned.csv')
+
+print("=== STEP 2A: COUNTY-LEVEL VARIABLES ANALYSIS ===\n")
+
+# Define county-level variables by category
+economic_vars = [
+    'median_household_income_raw_value',
+    'children_in_poverty_raw_value', 
+    'unemployment_raw_value',
+    'income_inequality_raw_value'
+]
+
+healthcare_access_vars = [
+    'uninsured_adults_raw_value',
+    'primary_care_physicians_raw_value',
+    'mental_health_providers_raw_value'
+]
+
+demographic_vars = [
+    '%_65_and_older_raw_value',
+    '%_non_hispanic_black_raw_value',
+    '%_hispanic_raw_value',
+    '%_non_hispanic_white_raw_value',
+    '%_rural_raw_value'
+]
+
+education_vars = [
+    'some_college_raw_value',
+    'high_school_graduation_raw_value'
+]
+
+print("1. ECONOMIC VARIABLES")
+print("="*50)
+for var in economic_vars:
+    print(f"\n{var}:")
+    print(f"  Count: {df[var].count()}")
+    print(f"  Mean: {df[var].mean():.2f}")
+    print(f"  Std: {df[var].std():.2f}")
+    print(f"  Min: {df[var].min():.2f}")
+    print(f"  Max: {df[var].max():.2f}")
+    print(f"  Missing: {df[var].isna().sum()}")
+
+print("\n\n2. HEALTHCARE ACCESS VARIABLES")
+print("="*50)
+for var in healthcare_access_vars:
+    print(f"\n{var}:")
+    print(f"  Count: {df[var].count()}")
+    print(f"  Mean: {df[var].mean():.2f}")
+    print(f"  Std: {df[var].std():.2f}")
+    print(f"  Min: {df[var].min():.2f}")
+    print(f"  Max: {df[var].max():.2f}")
+    print(f"  Missing: {df[var].isna().sum()}")
+
+print("\n\n3. DEMOGRAPHIC VARIABLES")
+print("="*50)
+for var in demographic_vars:
+    print(f"\n{var}:")
+    print(f"  Count: {df[var].count()}")
+    print(f"  Mean: {df[var].mean():.2f}")
+    print(f"  Std: {df[var].std():.2f}")
+    print(f"  Min: {df[var].min():.2f}")
+    print(f"  Max: {df[var].max():.2f}")
+    print(f"  Missing: {df[var].isna().sum()}")
+
+print("\n\n4. EDUCATION VARIABLES")
+print("="*50)
+for var in education_vars:
+    print(f"\n{var}:")
+    print(f"  Count: {df[var].count()}")
+    print(f"  Mean: {df[var].mean():.2f}")
+    print(f"  Std: {df[var].std():.2f}")
+    print(f"  Min: {df[var].min():.2f}")
+    print(f"  Max: {df[var].max():.2f}")
+    print(f"  Missing: {df[var].isna().sum()}")
+
+print("\n\n5. COUNTY CLUSTERING CHECK")
+print("="*50)
+print(f"Number of unique counties: {df['county_fips_code'].nunique()}")
+print(f"Hospitals per county (mean): {len(df) / df['county_fips_code'].nunique():.2f}")
+print(f"Counties with multiple hospitals: {(df['county_fips_code'].value_counts() > 1).sum()}")
