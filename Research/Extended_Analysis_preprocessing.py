@@ -458,3 +458,127 @@ print(f"""
 print("\n✅ Extended analysis complete!")
 print("   - Comprehensive visualization saved: 'extended_hierarchical_analysis.png'")
 print("   - Ready for detailed interpretation and next phase planning")
+
+
+
+
+Results:
+
+EXTENDED HIERARCHICAL ANALYSIS - PHASE 2 (FIXED)
+Investigating Unexplained Variance & Model Enhancement
+================================================================================
+✅ Dataset loaded: 2152 hospitals, 22 variables
+
+================================================================================
+EXTENSION 1: OUTLIER ANALYSIS & ROBUST MODELING
+================================================================================
+
+📊 OUTLIER ANALYSIS:
+   - IQR method: 54 outliers (2.5%)
+   - Z-score method: 14 outliers (0.7%)
+
+   Outlier characteristics (IQR method):
+   - Outcome range: 0.780 to 1.287
+   - Regular range: 0.958 to 1.036
+   - Counties with most outliers: {62: 3, 13: 2, 28: 2}
+
+🔄 RE-RUNNING MODEL WITHOUT OUTLIERS:
+   - Clean dataset: 2098 hospitals (97.5% retained)
+   ✅ Clean model fitted successfully
+   - County variance: 0.000084
+   - Hospital variance: 0.002944
+   - Total variance: 0.003027
+   - Variance reduction: 26.5%
+
+================================================================================
+EXTENSION 2: NONLINEAR RELATIONSHIPS & INTERACTIONS
+================================================================================
+
+📊 TESTING NONLINEAR RELATIONSHIPS:
+   - Created 8 squared terms
+   ✅ Nonlinear model fitted successfully
+   - Log-likelihood: 2901.88
+   - AIC: nan
+   - Log-likelihood improvement: -29.04
+
+📊 TESTING KEY INTERACTIONS:
+   - Created 13 interaction terms
+   ✅ Interaction model fitted successfully
+   - Log-likelihood: 2906.03
+   - Improvement: -24.89
+   - Significant interactions: 9
+
+================================================================================
+EXTENSION 3: ALTERNATIVE CLUSTERING APPROACHES
+================================================================================
+
+📊 TESTING ALTERNATIVE CLUSTERING:
+   ✅ State-level clustering:
+   - State ICC: 0.1155 (11.6%)
+   - Compare to County ICC: 0.0287 (2.9%)
+
+📊 TESTING HOSPITAL VOLUME CLUSTERING:
+   - Created volume categories: {'Large': 1462, 'Medium': 419, 'Very_Large': 140, 'Small': 131}
+
+================================================================================
+EXTENSION 4: RESIDUAL ANALYSIS & UNEXPLAINED VARIANCE
+================================================================================
+
+📊 RESIDUAL ANALYSIS:
+   ✅ Residual analysis completed
+   - Residual std: 0.059287
+   - Residual range: -0.204311 to 0.237390
+   - Shapiro-Wilk normality test: p = 0.000000
+   - Homoscedasticity (|resid| vs fitted): r = 0.0794
+
+   Top 10 hospitals with largest residuals:
+   - Residual range: -0.2043 to 0.2374
+   - Counties with large residuals: {7: 2, 12: 1, 82: 1}
+
+================================================================================
+EXTENSION 5: CROSS-VALIDATION & ROBUSTNESS
+================================================================================
+
+📊 CROSS-VALIDATION ANALYSIS:
+   - Training set: 1833 hospitals, 142 counties
+   - Test set: 319 hospitals, 36 counties
+   ✅ Training model fitted successfully
+   - Pseudo R² (likelihood ratio): -0.0236
+   - Variance-based R²: 0.1205
+
+================================================================================
+EXTENSION 6: ENHANCED VISUALIZATION & REPORTING
+================================================================================
+================================================================================
+EXTENDED ANALYSIS COMPLETE
+================================================================================
+
+🎯 EXTENDED ANALYSIS SUMMARY:
+
+📊 KEY FINDINGS FROM EXTENSIONS:
+   • Outlier Analysis: 54 hospitals identified as outliers
+   • Residual Analysis: Non-normal distribution
+   • Cross-validation: Model stability assessed
+   • Alternative clustering: State vs County effects compared
+
+🔍 CRITICAL INSIGHTS:
+   • 88.9% unexplained variance suggests missing variables
+   • Low ICC (2.9%) indicates hospital-level factors dominate
+   • Need for additional data sources or different modeling approaches
+
+📈 NEXT STEPS RECOMMENDATIONS:
+   1. Investigate missing variables (nurse ratios, patient acuity, etc.)
+   2. Consider machine learning approaches for complex interactions
+   3. Explore temporal patterns in readmission data
+   4. Include patient-level characteristics if available
+
+💡 PUBLICATION IMPLICATIONS:
+   • Results challenge conventional wisdom about social determinants
+   • Highlights importance of hospital-specific factors
+   • Suggests need for multi-level intervention strategies
+   • Opens new research directions for unexplained variance
+
+
+✅ Extended analysis complete!
+   - Comprehensive visualization saved: 'extended_hierarchical_analysis.png'
+   - Ready for detailed interpretation and next phase planning
