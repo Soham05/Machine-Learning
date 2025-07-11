@@ -41,3 +41,330 @@ TE Group Measure Count                               object
 Count of Facility TE Measures                        object
 TE Group Footnote                                   float64
 dtype: object
+
+Missing Data Summary:
+                                                  Missing_Count  \
+Facility ID                                                   0   
+Facility Name                                                 0   
+Address                                                       0   
+City/Town                                                     0   
+State                                                         0   
+ZIP Code                                                      0   
+County/Parish                                                 0   
+Telephone Number                                              0   
+Hospital Type                                                 0   
+Hospital Ownership                                            0   
+Emergency Services                                            0   
+Meets criteria for birthing friendly designation           3154   
+Hospital overall rating                                       0   
+Hospital overall rating footnote                           2766   
+MORT Group Measure Count                                      0   
+Count of Facility MORT Measures                               0   
+Count of MORT Measures Better                                 0   
+Count of MORT Measures No Different                           0   
+Count of MORT Measures Worse                                  0   
+MORT Group Footnote                                        3509   
+Safety Group Measure Count                                    0   
+Count of Facility Safety Measures                             0   
+Count of Safety Measures Better                               0   
+Count of Safety Measures No Different                         0   
+Count of Safety Measures Worse                                0   
+Safety Group Footnote                                      3390   
+READM Group Measure Count                                     0   
+Count of Facility READM Measures                              0   
+Count of READM Measures Better                                0   
+Count of READM Measures No Different                          0   
+Count of READM Measures Worse                                 0   
+READM Group Footnote                                       4296   
+Pt Exp Group Measure Count                                    0   
+Count of Facility Pt Exp Measures                             0   
+Pt Exp Group Footnote                                      3194   
+TE Group Measure Count                                        0   
+Count of Facility TE Measures                                 0   
+TE Group Footnote                                          4490   
+
+                                                  Missing_Percentage  
+Facility ID                                                 0.000000  
+Facility Name                                               0.000000  
+Address                                                     0.000000  
+City/Town                                                   0.000000  
+State                                                       0.000000  
+ZIP Code                                                    0.000000  
+County/Parish                                               0.000000  
+Telephone Number                                            0.000000  
+Hospital Type                                               0.000000  
+Hospital Ownership                                          0.000000  
+Emergency Services                                          0.000000  
+Meets criteria for birthing friendly designation           58.580981  
+Hospital overall rating                                     0.000000  
+Hospital overall rating footnote                           51.374443  
+MORT Group Measure Count                                    0.000000  
+Count of Facility MORT Measures                             0.000000  
+Count of MORT Measures Better                               0.000000  
+Count of MORT Measures No Different                         0.000000  
+Count of MORT Measures Worse                                0.000000  
+MORT Group Footnote                                        65.174591  
+Safety Group Measure Count                                  0.000000  
+Count of Facility Safety Measures                           0.000000  
+Count of Safety Measures Better                             0.000000  
+Count of Safety Measures No Different                       0.000000  
+Count of Safety Measures Worse                              0.000000  
+Safety Group Footnote                                      62.964339  
+READM Group Measure Count                                   0.000000  
+Count of Facility READM Measures                            0.000000  
+Count of READM Measures Better                              0.000000  
+Count of READM Measures No Different                        0.000000  
+Count of READM Measures Worse                               0.000000  
+READM Group Footnote                                       79.791976  
+Pt Exp Group Measure Count                                  0.000000  
+Count of Facility Pt Exp Measures                           0.000000  
+Pt Exp Group Footnote                                      59.323923  
+TE Group Measure Count                                      0.000000  
+Count of Facility TE Measures                               0.000000  
+TE Group Footnote                                          83.395245  
+
+Facility ID:
+  Data type: object
+  Unique values: 5384
+  Sample values: Facility ID
+671301    1
+010001    1
+010005    1
+Name: count, dtype: int64
+
+County/Parish:
+  Data type: object
+  Unique values: 1549
+  Sample values: County/Parish
+LOS ANGELES    88
+COOK           60
+JEFFERSON      57
+Name: count, dtype: int64
+
+State:
+  Data type: object
+  Unique values: 56
+  Sample values: State
+TX    459
+CA    379
+FL    219
+Name: count, dtype: int64
+
+Hospital Type:
+  Data type: object
+  Unique values: 6
+  Sample values: Hospital Type
+Acute Care Hospitals         3131
+Critical Access Hospitals    1368
+Psychiatric                   627
+Name: count, dtype: int64
+
+Hospital Ownership:
+  Data type: object
+  Unique values: 12
+  Sample values: Hospital Ownership
+Voluntary non-profit - Private                 2280
+Proprietary                                    1060
+Government - Hospital District or Authority     512
+Name: count, dtype: int64
+
+State distribution:
+State
+TX    459
+CA    379
+FL    219
+IL    195
+OH    194
+NY    190
+PA    188
+LA    156
+IN    149
+MI    146
+GA    146
+WI    142
+MN    135
+KS    135
+OK    129
+NC    123
+MO    122
+TN    122
+IA    119
+AZ    106
+KY    102
+AL    100
+WA    100
+MS     99
+CO     97
+VA     95
+NE     92
+AR     85
+MA     82
+NJ     78
+SC     66
+MT     63
+SD     62
+OR     62
+PR     60
+MD     56
+WV     55
+UT     52
+ID     48
+ND     47
+NV     45
+NM     44
+ME     37
+CT     37
+WY     30
+NH     28
+AK     25
+HI     24
+VT     17
+DE     13
+RI     13
+DC     10
+VI      2
+GU      2
+AS      1
+MP      1
+Name: count, dtype: int64
+
+ZIP Code range: 603 - 99929
+ZIP Code missing: 0
+
+Hospital Type Distribution:
+Hospital Type
+Acute Care Hospitals                    3131
+Critical Access Hospitals               1368
+Psychiatric                              627
+Acute Care - Veterans Administration     132
+Childrens                                 94
+Acute Care - Department of Defense        32
+Name: count, dtype: int64
+
+Hospital Ownership Distribution:
+Hospital Ownership
+Voluntary non-profit - Private                 2280
+Proprietary                                    1060
+Government - Hospital District or Authority     512
+Government - Local                              396
+Voluntary non-profit - Other                    361
+Voluntary non-profit - Church                   272
+Government - State                              208
+Veterans Health Administration                  132
+Physician                                        74
+Government - Federal                             42
+Department of Defense                            32
+Tribal                                           15
+Name: count, dtype: int64
+
+Emergency Services Distribution:
+Emergency Services
+Yes    4475
+No      909
+Name: count, dtype: int64
+
+Hospital Rating Distribution:
+Hospital overall rating
+Not Available    2572
+3                 816
+4                 758
+2                 583
+5                 380
+1                 275
+Name: count, dtype: int64
+
+Facility ID format check:
+  Length range: 6 - 6
+  Sample IDs: 0    010001
+1    010005
+2    010006
+3    010007
+4    010008
+Name: Facility ID, dtype: object
+
+Geographic Coverage Analysis:
+Total hospitals: 5384
+Unique states: 56
+Unique counties: 1549
+
+Top 10 states by hospital count:
+State
+TX    459
+CA    379
+FL    219
+IL    195
+OH    194
+NY    190
+PA    188
+LA    156
+IN    149
+MI    146
+Name: count, dtype: int64
+
+Data Completeness for Key Variables:
+                        Complete  Missing  Completeness_Rate
+Facility ID               5384.0      0.0              100.0
+County_Standardized       5384.0      0.0              100.0
+State                     5384.0      0.0              100.0
+Hospital_Type_Category    5384.0      0.0              100.0
+Ownership_Category        5384.0      0.0              100.0
+Has_Emergency_Services    5384.0      0.0              100.0
+
+Duplicate Facility IDs: 0
+
+Unique state-county combinations: 2451
+Counties with >20 hospitals (potential data quality check needed):
+     State County_Standardized  Hospital_Count
+134     AZ            MARICOPA              53
+159     CA         LOS ANGELES              88
+170     CA              ORANGE              28
+175     CA      SAN BERNARDINO              23
+176     CA           SAN DIEGO              22
+547     IL                COOK              58
+1032    MI               WAYNE              21
+1529    NV               CLARK              24
+1722    OK            OKLAHOMA              23
+1820    PA        PHILADELPHIA              21
+2052    TX              DALLAS              30
+2083    TX              HARRIS              49
+2158    TX             TARRANT              29
+
+Final Dataset Summary:
+       Facility ID      Facility Name State County_Standardized  \
+count         5384               5384  5384                5384   
+unique        5384               5257    56                1549   
+top         671301  MEMORIAL HOSPITAL    TX         LOS ANGELES   
+freq             1                 12   459                  88   
+mean           NaN                NaN   NaN                 NaN   
+std            NaN                NaN   NaN                 NaN   
+min            NaN                NaN   NaN                 NaN   
+25%            NaN                NaN   NaN                 NaN   
+50%            NaN                NaN   NaN                 NaN   
+75%            NaN                NaN   NaN                 NaN   
+max            NaN                NaN   NaN                 NaN   
+
+       State_County_Key Hospital_Type_Category Ownership_Category  \
+count              5384                   5384               5384   
+unique             2451                      3                  4   
+top      CA_LOS ANGELES             Acute Care            Private   
+freq                 88                   3295               3340   
+mean                NaN                    NaN                NaN   
+std                 NaN                    NaN                NaN   
+min                 NaN                    NaN                NaN   
+25%                 NaN                    NaN                NaN   
+50%                 NaN                    NaN                NaN   
+75%                 NaN                    NaN                NaN   
+max                 NaN                    NaN                NaN   
+
+        Has_Emergency_Services  Hospital_Rating_Numeric      ZIP Code  
+count              5384.000000              2812.000000   5384.000000  
+unique                     NaN                      NaN           NaN  
+top                        NaN                      NaN           NaN  
+freq                       NaN                      NaN           NaN  
+mean                  0.831166                 3.136913  53762.267831  
+std                   0.374640                 1.179133  27103.733755  
+min                   0.000000                 1.000000    603.000000  
+25%                   1.000000                 2.000000  32607.250000  
+50%                   1.000000                 3.000000  55046.000000  
+75%                   1.000000                 4.000000  76125.250000  
+max                   1.000000                 5.000000  99929.000000  
