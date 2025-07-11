@@ -1,0 +1,106 @@
+=== SOCIAL DETERMINANTS ANALYSIS: THREE-WAY DATA MERGE ===
+
+Loading Hospital General Information dataset...
+Hospital General dataset prepared: 5384 hospitals
+Geographic coverage: 56 states, 1549 counties
+Loading County Health Rankings dataset...
+County Health dataset prepared: 3180 counties
+Geographic coverage: 52 states
+Loading Hospital Readmissions dataset...
+Readmissions dataset prepared: 2731 hospitals with pneumonia data
+
+=== EXECUTING THREE-WAY MERGE ===
+Step 1: Merging Hospital General with County Health Rankings...
+Hospital-County merge: 5163/5384 hospitals matched (95.9%)
+Step 2: Merging with Readmissions data...
+Final three-way merge: 2237 hospitals with complete data
+Success rate from readmissions sample: 81.9%
+Step 3: Cleaning final dataset...
+Final dataset ready: 2237 hospitals
+
+=== MERGE ANALYSIS RESULTS ===
+
+Final Sample Size: 2237 hospitals
+Geographic Coverage: 42 states, 1208 counties
+
+Merge Success Rates:
+  Hospital-County merge: 95.9%
+  Three-way merge success: 81.9%
+
+Hospital Characteristics Distribution:
+  Hospital Type:
+Hospital_Type_Category
+Acute Care    2237
+Name: count, dtype: int64
+  Hospital Ownership:
+Ownership_Category
+Private       1543
+Non-Profit     372
+Public         311
+Other           11
+Name: count, dtype: int64
+  Emergency Services: 96.2% have emergency services
+
+Key Variable Completeness:
+  median_household_income_raw_value: 96.3%
+  children_in_poverty_raw_value: 96.3%
+  unemployment_raw_value: 96.3%
+  uninsured_adults_raw_value: 96.3%
+  primary_care_physicians_raw_value: 96.2%
+  mental_health_providers_raw_value: 96.2%
+  %_65_and_older_raw_value: 96.3%
+  %_non_hispanic_black_raw_value: 96.3%
+  %_american_indian_alaska_native_raw_value: 96.3%
+  %_asian_raw_value: 96.3%
+  %_hispanic_raw_value: 96.3%
+  %_native_hawaiian_other_pacific_islander_raw_value: 96.3%
+  %_non_hispanic_white_raw_value: 96.3%
+  %_rural_raw_value: 96.2%
+  %_females_raw_value: 96.3%
+  Excess Readmission Ratio: 100.0%
+
+Primary Outcome (Excess Readmission Ratio):
+  Mean: 0.999
+  Std: 0.064
+  Range: 0.780 - 1.287
+
+Merged dataset saved to: merged_social_determinants_analysis.csv
+
+Merged Columns:
+Index(['Facility ID', 'Facility Name', 'State', 'County_Standardized',
+       'State_County_Key', 'Hospital_Type_Category', 'Ownership_Category',
+       'Has_Emergency_Services', 'Hospital_Rating_Numeric', 'ZIP Code',
+       'county_clean_hospital', 'state_county', 'state_fips_code',
+       'county_fips_code', '5_digit_fips_code', 'state_abbreviation', 'name',
+       'release_year', 'median_household_income_raw_value',
+       'median_household_income_ci_low', 'median_household_income_ci_high',
+       'children_in_poverty_raw_value', 'children_in_poverty_ci_low',
+       'children_in_poverty_ci_high', 'unemployment_raw_value',
+       'income_inequality_raw_value', 'some_college_raw_value',
+       'high_school_graduation_raw_value', 'uninsured_adults_raw_value',
+       'primary_care_physicians_raw_value',
+       'ratio_of_population_to_primary_care_physicians',
+       'mental_health_providers_raw_value',
+       'ratio_of_population_to_mental_health_providers',
+       'severe_housing_problems_raw_value', 'social_associations_raw_value',
+       'residential_segregation_black_white_raw_value',
+       '%_65_and_older_raw_value', '%_non_hispanic_black_raw_value',
+       '%_american_indian_alaska_native_raw_value', '%_asian_raw_value',
+       '%_hispanic_raw_value',
+       '%_native_hawaiian_other_pacific_islander_raw_value',
+       '%_non_hispanic_white_raw_value', '%_rural_raw_value',
+       '%_females_raw_value', 'population_raw_value',
+       'adult_smoking_raw_value', 'adult_obesity_raw_value',
+       'excessive_drinking_raw_value', 'physical_inactivity_raw_value',
+       'poor_or_fair_health_raw_value', 'poor_physical_health_days_raw_value',
+       'poor_mental_health_days_raw_value',
+       'children_in_single_parent_households_raw_value',
+       'food_insecurity_raw_value', 'homeownership_raw_value',
+       '%_not_proficient_in_english_raw_value', 'uninsured_children_raw_value',
+       'other_primary_care_providers_raw_value', 'county_clean_county',
+       'Facility Name_readmissions', 'State_readmissions', 'Measure Name',
+       'Number of Discharges', 'Footnote', 'Excess Readmission Ratio',
+       'Predicted Readmission Rate', 'Expected Readmission Rate',
+       'Number of Readmissions', 'Start Date', 'End Date'],
+      dtype='object')
+
