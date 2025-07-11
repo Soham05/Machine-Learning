@@ -170,3 +170,140 @@ Cleaned dataset saved as: merged_social_determinants_analysis_level1_cleaned.csv
 
 STEP 1C COMPLETED SUCCESSFULLY!
 ==================================================
+
+*************************************************************************************************************************
+=== STEP 2A: COUNTY-LEVEL VARIABLES ANALYSIS ===
+
+1. ECONOMIC VARIABLES
+==================================================
+
+median_household_income_raw_value:
+  Count: 2154
+  Mean: 64676.82
+  Std: 17035.84
+  Min: 26866.00
+  Max: 155362.00
+  Missing: 83
+
+children_in_poverty_raw_value:
+  Count: 2154
+  Mean: 0.17
+  Std: 0.07
+  Min: 0.03
+  Max: 0.53
+  Missing: 83
+
+unemployment_raw_value:
+  Count: 2154
+  Mean: 0.08
+  Std: 0.02
+  Min: 0.03
+  Max: 0.18
+  Missing: 83
+
+income_inequality_raw_value:
+  Count: 2154
+  Mean: 4.63
+  Std: 0.70
+  Min: 3.16
+  Max: 8.09
+  Missing: 83
+
+
+2. HEALTHCARE ACCESS VARIABLES
+==================================================
+
+uninsured_adults_raw_value:
+  Count: 2154
+  Mean: 0.13
+  Std: 0.06
+  Min: 0.03
+  Max: 0.43
+  Missing: 83
+
+primary_care_physicians_raw_value:
+  Count: 2153
+  Mean: 0.00
+  Std: 0.00
+  Min: 0.00
+  Max: 0.01
+  Missing: 84
+
+mental_health_providers_raw_value:
+  Count: 2153
+  Mean: 0.00
+  Std: 0.00
+  Min: 0.00
+  Max: 0.03
+  Missing: 84
+
+
+3. DEMOGRAPHIC VARIABLES
+==================================================
+
+%_65_and_older_raw_value:
+  Count: 2154
+  Mean: 0.18
+  Std: 0.04
+  Min: 0.07
+  Max: 0.41
+  Missing: 83
+
+%_non_hispanic_black_raw_value:
+  Count: 2154
+  Mean: 0.12
+  Std: 0.13
+  Min: 0.00
+  Max: 0.77
+  Missing: 83
+
+%_hispanic_raw_value:
+  Count: 2154
+  Mean: 0.14
+  Std: 0.15
+  Min: 0.01
+  Max: 0.96
+  Missing: 83
+
+%_non_hispanic_white_raw_value:
+  Count: 2154
+  Mean: 0.67
+  Std: 0.21
+  Min: 0.03
+  Max: 0.98
+  Missing: 83
+
+%_rural_raw_value:
+  Count: 2153
+  Mean: 0.25
+  Std: 0.24
+  Min: 0.00
+  Max: 1.00
+  Missing: 84
+
+
+4. EDUCATION VARIABLES
+==================================================
+
+some_college_raw_value:
+  Count: 2154
+  Mean: 0.65
+  Std: 0.10
+  Min: 0.19
+  Max: 0.91
+  Missing: 83
+
+high_school_graduation_raw_value:
+  Count: 2154
+  Mean: 0.87
+  Std: 0.06
+  Min: 0.03
+  Max: 0.99
+  Missing: 83
+
+
+5. COUNTY CLUSTERING CHECK
+==================================================
+Number of unique counties: 179
+Hospitals per county (mean): 12.50
+Counties with multiple hospitals: 125
