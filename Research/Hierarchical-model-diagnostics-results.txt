@@ -1,0 +1,79 @@
+================================================================================
+DATA STRUCTURE DIAGNOSTIC
+================================================================================
+
+1. BASIC DATA STRUCTURE
+--------------------------------------------------
+Shape: (2152, 15)
+Columns: ['Ownership_Category_Clean', 'Hospital_Rating_Numeric_Imputed_std', 'Rating_Missing', 'median_household_income_raw_value_std', 'children_in_poverty_raw_value_std', 'uninsured_adults_raw_value_std', 'ratio_of_population_to_primary_care_physicians_std', '%_rural_raw_value_std', '%_non_hispanic_white_raw_value_std', 'some_college_raw_value_std', 'county_group', 'Excess Readmission Ratio', 'Facility ID', 'Facility Name', 'State']
+
+Problematic column names (spaces/symbols): ['%_rural_raw_value_std', '%_non_hispanic_white_raw_value_std', 'Excess Readmission Ratio', 'Facility ID', 'Facility Name']
+
+2. OUTCOME VARIABLE ANALYSIS
+--------------------------------------------------
+Original outcome column: 'Excess Readmission Ratio'
+Data type: float64
+Missing values: 0
+Unique values: 1391
+Sample values: [1.0077, 0.9386, 1.0074, 1.1283, 1.0561]
+
+Created clean column 'ERR'
+ERR data type: float64
+ERR missing values: 0
+
+3. GROUPING VARIABLE ANALYSIS
+--------------------------------------------------
+Grouping column: 'county_group'
+Data type: float64
+Missing values: 0
+Unique groups: 178
+Sample values: [31.0, 99.0, 95.0, 95.0, 86.0]
+
+4. PREDICTOR VARIABLES ANALYSIS
+--------------------------------------------------
+Level 1 (Hospital) Variables:
+  ✅ Ownership_Category_Clean: object, 0 missing
+      Categories: {'Private': 1501, 'Non-Profit': 351, 'Public': 300}
+  ✅ Hospital_Rating_Numeric_Imputed_std: float64, 0 missing
+  ✅ Rating_Missing: int64, 0 missing
+
+Level 2 (County) Variables:
+  ✅ median_household_income_raw_value_std: float64, 0 missing
+  ✅ children_in_poverty_raw_value_std: float64, 0 missing
+  ✅ uninsured_adults_raw_value_std: float64, 0 missing
+  ✅ ratio_of_population_to_primary_care_physicians_std: float64, 0 missing
+  ✅ %_rural_raw_value_std: float64, 0 missing
+  ✅ %_non_hispanic_white_raw_value_std: float64, 0 missing
+  ✅ some_college_raw_value_std: float64, 0 missing
+
+5. CLEAN COLUMN NAMES FOR MODELING
+--------------------------------------------------
+Column mapping applied: {'%_rural_raw_value_std': 'pct_rural_raw_value_std', '%_non_hispanic_white_raw_value_std': 'pct_non_hispanic_white_raw_value_std', 'Excess Readmission Ratio': 'Excess_Readmission_Ratio', 'Facility ID': 'Facility_ID', 'Facility Name': 'Facility_Name'}
+
+6. TEST SIMPLE MODEL
+--------------------------------------------------
+Test dataset shape: (2152, 2)
+✅ Null model fitted successfully!
+   - Log-likelihood: 2858.29
+   - AIC: nan
+   - ICC: 0.0287 (2.9% county-level variance)
+
+7. RECOMMENDED FIXES
+--------------------------------------------------
+✅ Saved cleaned dataset: 'hierarchical_model_cleaned_dataset.csv'
+
+Recommended variable names for modeling:
+- Outcome: 'ERR'
+- Grouping: 'county_id'
+- Level 1 vars: Check availability in cleaned dataset
+- Level 2 vars: Check availability in cleaned dataset
+
+8. FINAL DATA SUMMARY
+--------------------------------------------------
+Final cleaned dataset shape: (2152, 22)
+Complete cases for ERR and county_id: 2152
+Counties in final dataset: 178
+
+================================================================================
+DIAGNOSTIC COMPLETE
+================================================================================
