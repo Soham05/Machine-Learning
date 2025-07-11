@@ -240,3 +240,38 @@ print("="*50)
 print(f"Number of unique counties: {df['county_fips_code'].nunique()}")
 print(f"Hospitals per county (mean): {len(df) / df['county_fips_code'].nunique():.2f}")
 print(f"Counties with multiple hospitals: {(df['county_fips_code'].value_counts() > 1).sum()}")
+
+
+**********************************************************************************************
+import pandas as pd
+
+# Load the cleaned dataset
+df = pd.read_csv('merged_social_determinants_analysis_level1_cleaned.csv')
+
+print("=== STEP 2C: HEALTHCARE ACCESS RATIO VARIABLES CHECK ===\n")
+
+# Check if ratio variables exist
+ratio_vars = [
+    'ratio_of_population_to_primary_care_physicians',
+    'ratio_of_population_to_mental_health_providers'
+]
+
+for var in ratio_vars:
+    if var in df.columns:
+        print(f"\n{var}:")
+        print(f"  Count: {df[var].count()}")
+        print(f"  Mean: {df[var].mean():.2f}")
+        print(f"  Std: {df[var].std():.2f}")
+        print(f"  Min: {df[var].min():.2f}")
+        print(f"  Max: {df[var].max():.2f}")
+        print(f"  Missing: {df[var].isna().sum()}")
+    else:
+        print(f"\n{var}: NOT FOUND in dataset")
+
+# Also check what other healthcare-related variables we have
+print("\n\nALL AVAILABLE HEALTHCARE-RELATED VARIABLES:")
+print("="*50)
+healthcare_keywords = ['care', 'physician', 'provider', 'health', 'uninsured']
+healthcare_cols = [col for col in df.columns if any(keyword in col.lower() for keyword in healthcare_keywords)]
+for col in healthcare_cols:
+    print(f"- {col}")
