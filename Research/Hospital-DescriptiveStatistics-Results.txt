@@ -1,0 +1,93 @@
+=== STEP 1A: HOSPITAL-LEVEL VARIABLES ANALYSIS ===
+
+1. CATEGORICAL VARIABLES - FREQUENCY DISTRIBUTIONS
+==================================================
+
+Hospital_Type_Category:
+Hospital_Type_Category
+Acute Care    2237
+Name: count, dtype: int64
+Missing values: 0
+
+Ownership_Category:
+Ownership_Category
+Private       1543
+Non-Profit     372
+Public         311
+Other           11
+Name: count, dtype: int64
+Missing values: 0
+
+Has_Emergency_Services:
+Has_Emergency_Services
+1    2151
+0      86
+Name: count, dtype: int64
+Missing values: 0
+
+
+2. CONTINUOUS VARIABLES - DESCRIPTIVE STATISTICS
+==================================================
+
+Hospital_Rating_Numeric:
+count    2027.000000
+mean        3.112481
+std         1.160036
+min         1.000000
+25%         2.000000
+50%         3.000000
+75%         4.000000
+max         5.000000
+Name: Hospital_Rating_Numeric, dtype: float64
+Missing values: 210
+
+3. CROSS-TABULATIONS
+==================================================
+
+Ownership_Category vs Has_Emergency_Services:
+Has_Emergency_Services   0     1   All
+Ownership_Category                    
+Non-Profit              36   336   372
+Other                    0    11    11
+Private                 31  1512  1543
+Public                  19   292   311
+All                     86  2151  2237
+
+Hospital_Type_Category vs Ownership_Category:
+Ownership_Category      Non-Profit  Other  Private  Public   All
+Hospital_Type_Category                                          
+Acute Care                     372     11     1543     311  2237
+All                            372     11     1543     311  2237
+
+
+4. PRIMARY OUTCOME VARIABLE
+==================================================
+
+Excess Readmission Ratio:
+count    2237.000000
+mean        0.999276
+std         0.063793
+min         0.780300
+25%         0.958300
+50%         0.995500
+75%         1.036900
+max         1.287100
+Name: Excess Readmission Ratio, dtype: float64
+Missing values: 0
+
+Outlier check (values beyond 3 standard deviations):
+Number of potential outliers: 15
+
+Expected range check (your summary mentioned 0.780-1.287):
+Actual min: 0.7803
+Actual max: 1.2871
+
+
+5. SAMPLE SIZE CONFIRMATION
+==================================================
+Total hospitals in dataset: 2237
+Complete cases for analysis: 2027
+
+Measure Name verification:
+Unique values in Measure Name: ['READM-30-PN-HRRP']
+Count of READM-30-PN-HRRP records: 2237
