@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Extended Hierarchical Analysis - Phase 2
+Extended Hierarchical Analysis - Phase 2 (FIXED)
 Investigating the 88.9% unexplained variance and strengthening the analysis
 """
 
@@ -22,7 +22,7 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 1000)
 
 print("="*80)
-print("EXTENDED HIERARCHICAL ANALYSIS - PHASE 2")
+print("EXTENDED HIERARCHICAL ANALYSIS - PHASE 2 (FIXED)")
 print("Investigating Unexplained Variance & Model Enhancement")
 print("="*80)
 
@@ -324,10 +324,21 @@ try:
     train_results = train_model.fit()
     
     print(f"   ✅ Training model fitted successfully")
-    print(f"   - Training R²: {train_results.rsquared:.4f}")
     
-    # Note: Proper prediction for mixed models requires more complex approach
-    # This is a simplified validation
+    # FIXED: Calculate pseudo R-squared for mixed models
+    # Method 1: Compare to null model
+    null_model_train = mixedlm(f"{outcome_col} ~ 1", data=train_df, groups=train_df[group_col])
+    null_results_train = null_model_train.fit()
+    
+    # Pseudo R-squared using likelihood ratio
+    pseudo_r2 = 1 - (train_results.llf / null_results_train.llf)
+    print(f"   - Pseudo R² (likelihood ratio): {pseudo_r2:.4f}")
+    
+    # Method 2: Variance-based R-squared
+    fitted_var = np.var(train_results.fittedvalues)
+    total_var = np.var(train_df[outcome_col])
+    var_based_r2 = fitted_var / total_var
+    print(f"   - Variance-based R²: {var_based_r2:.4f}")
     
 except Exception as e:
     print(f"   ❌ Error in cross-validation: {e}")
@@ -402,11 +413,9 @@ axes[2, 1].set_xlabel('Model Type')
 axes[2, 1].set_ylabel('Percent Variance')
 axes[2, 1].legend()
 
-# 9. Model performance summary
-performance_metrics = ['R²', 'AIC', 'BIC', 'Log-Likelihood']
-# These would be filled with actual values from your models
+# 9. Model performance summary - FIXED
 axes[2, 2].text(0.1, 0.8, 'Model Performance Summary', fontsize=14, fontweight='bold')
-axes[2, 2].text(0.1, 0.6, f'Original Model R²: {train_results.rsquared:.4f}', fontsize=12)
+axes[2, 2].text(0.1, 0.6, f'Pseudo R² (likelihood): {pseudo_r2:.4f}', fontsize=12)
 axes[2, 2].text(0.1, 0.4, f'Variance Explained: 11.1%', fontsize=12)
 axes[2, 2].text(0.1, 0.2, f'Unexplained: 88.9%', fontsize=12)
 axes[2, 2].axis('off')
