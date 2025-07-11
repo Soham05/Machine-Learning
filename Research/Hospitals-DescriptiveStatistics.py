@@ -275,3 +275,126 @@ healthcare_keywords = ['care', 'physician', 'provider', 'health', 'uninsured']
 healthcare_cols = [col for col in df.columns if any(keyword in col.lower() for keyword in healthcare_keywords)]
 for col in healthcare_cols:
     print(f"- {col}")
+
+
+
+
+******************************************************************************************************************************************************
+import pandas as pd
+import numpy as np
+
+# Load the cleaned dataset
+df = pd.read_csv('merged_social_determinants_analysis_level1_cleaned.csv')
+
+print("=== STEP 2D: FINAL LEVEL 2 VARIABLE SELECTION & CLEANING ===\n")
+
+# Define final Level 2 (County) variables
+level2_vars = [
+    # Economic (2 variables)
+    'median_household_income_raw_value',
+    'children_in_poverty_raw_value',
+    
+    # Healthcare Access (2 variables)
+    'uninsured_adults_raw_value',
+    'ratio_of_population_to_primary_care_physicians',
+    
+    # Demographics (2 variables)
+    '%_rural_raw_value',
+    '%_non_hispanic_white_raw_value',
+    
+    # Education (1 variable)
+    'some_college_raw_value'
+]
+
+print("FINAL LEVEL 2 (COUNTY) VARIABLES:")
+print("="*50)
+for i, var in enumerate(level2_vars, 1):
+    print(f"{i}. {var}")
+
+# Check missing data pattern
+print("\n\nMISSING DATA ANALYSIS:")
+print("="*50)
+missing_summary = df[level2_vars].isnull().sum()
+print(missing_summary)
+
+# Check if missing data is from same counties
+print(f"\nHospitals with any missing Level 2 data: {df[level2_vars].isnull().any(axis=1).sum()}")
+
+# Task 2D.1: Handle missing data
+print("\n\n1. HANDLING MISSING DATA")
+print("="*50)
+
+# Option 1: Complete case analysis (recommended for multilevel models)
+df_complete = df.dropna(subset=level2_vars + ['Excess Readmission Ratio'])
+
+print(f"Original sample: {len(df)} hospitals")
+print(f"Complete cases: {len(df_complete)} hospitals")
+print(f"Percentage retained: {len(df_complete)/len(df)*100:.1f}%")
+
+# Task 2D.2: Create county grouping variable
+print("\n\n2. COUNTY GROUPING VARIABLE")
+print("="*50)
+
+# Use county_fips_code as the grouping variable
+df_complete['county_group'] = df_complete['county_fips_code']
+
+print(f"Number of counties in final sample: {df_complete['county_group'].nunique()}")
+print(f"Average hospitals per county: {len(df_complete) / df_complete['county_group'].nunique():.2f}")
+
+# Check county distribution
+county_counts = df_complete['county_group'].value_counts()
+print(f"Counties with 1 hospital: {(county_counts == 1).sum()}")
+print(f"Counties with 2-5 hospitals: {((county_counts >= 2) & (county_counts <= 5)).sum()}")
+print(f"Counties with 6+ hospitals: {(county_counts >= 6).sum()}")
+
+# Task 2D.3: Standardize continuous variables
+print("\n\n3. STANDARDIZING CONTINUOUS VARIABLES")
+print("="*50)
+
+# Standardize Level 2 variables (z-score)
+level2_vars_std = []
+for var in level2_vars:
+    var_std = var + '_std'
+    df_complete[var_std] = (df_complete[var] - df_complete[var].mean()) / df_complete[var].std()
+    level2_vars_std.append(var_std)
+    print(f"Standardized {var} -> {var_std}")
+
+# Also standardize Level 1 continuous variable
+df_complete['Hospital_Rating_Numeric_Imputed_std'] = (
+    df_complete['Hospital_Rating_Numeric_Imputed'] - df_complete['Hospital_Rating_Numeric_Imputed'].mean()
+) / df_complete['Hospital_Rating_Numeric_Imputed'].std()
+
+# Task 2D.4: Final variable summary
+print("\n\n4. FINAL HIERARCHICAL MODEL VARIABLES")
+print("="*50)
+
+level1_vars_final = [
+    'Ownership_Category_Clean',
+    'Hospital_Rating_Numeric_Imputed_std',
+    'Rating_Missing'
+]
+
+print("LEVEL 1 (HOSPITAL) VARIABLES:")
+for var in level1_vars_final:
+    print(f"  - {var}")
+
+print("\nLEVEL 2 (COUNTY) VARIABLES:")
+for var in level2_vars_std:
+    print(f"  - {var}")
+
+print(f"\nCOUNTY GROUPING VARIABLE: county_group")
+print(f"PRIMARY OUTCOME: Excess Readmission Ratio")
+
+# Task 2D.5: Save final dataset
+print("\n\n5. SAVE FINAL DATASET")
+print("="*50)
+
+final_vars = level1_vars_final + level2_vars_std + ['county_group', 'Excess Readmission Ratio', 'Facility ID', 'Facility Name', 'State']
+df_final = df_complete[final_vars].copy()
+
+df_final.to_csv('hierarchical_model_final_dataset.csv', index=False)
+print(f"Final dataset saved: hierarchical_model_final_dataset.csv")
+print(f"Final sample size: {len(df_final)} hospitals")
+print(f"Final county count: {df_final['county_group'].nunique()} counties")
+
+print("\n\nSTEP 2D COMPLETED - READY FOR HIERARCHICAL MODELING!")
