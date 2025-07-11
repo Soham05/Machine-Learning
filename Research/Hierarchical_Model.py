@@ -40,8 +40,14 @@ try:
     
     # Display basic info about the outcome variable
     outcome_col = 'Excess Readmission Ratio'  # Adjust if column name differs
+    
+    # Fix column name for formula parsing (remove spaces)
     if outcome_col in df.columns:
-        print(f"\n   Primary Outcome: {outcome_col}")
+        df['ERR'] = df[outcome_col]  # Create clean column name
+        outcome_col = 'ERR'  # Use clean name for modeling
+    
+    if outcome_col in df.columns:
+        print(f"\n   Primary Outcome: {outcome_col} (cleaned from 'Excess Readmission Ratio')")
         print(f"   - Mean: {df[outcome_col].mean():.3f}")
         print(f"   - Std: {df[outcome_col].std():.3f}")
         print(f"   - Range: {df[outcome_col].min():.3f} to {df[outcome_col].max():.3f}")
@@ -230,6 +236,11 @@ else:
 
 print("\n6. VARIANCE DECOMPOSITION ANALYSIS")
 print("-" * 50)
+
+# Initialize variables with default values
+var_explained_hospital = 0
+var_explained_social = 0
+var_remaining = 1
 
 try:
     # Calculate variance explained by each component
