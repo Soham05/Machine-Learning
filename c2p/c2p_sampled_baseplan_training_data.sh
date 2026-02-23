@@ -1,0 +1,27 @@
+
+
+export ENVIRONMENT=prod
+DEPLOY_LOCATION=/claims_cert_prod
+
+timestamp=$(date +%s)
+
+
+unset PYSPARK_DRIVER_PYTHON
+unset PYSPARK_DRIVER_PYTHON_OPTS
+DATE=`date +%Y-%b-%d`
+
+log=/claims_cert_prod/claimscert/log/c2p_sampled_baseplan_training_data_$timestamp.log
+spark-submit    --driver-class-path /claims_cert_prod/claimscert/jars/mssql-jdbc-7.0.0.jre8.jar --driver-memory 260g --num-executors 180 --executor-cores 5 --executor-memory 150g --conf spark.rpc.message.maxSize=1024 c2p_sampled_baseplan_training_data.py >> $log 2>&1
+
+#python c2p_sampled_baseplan_training_data.py >> $log 2>&1
+
+
+
+
+chmod 777 $log
+
+
+
+
+
+
