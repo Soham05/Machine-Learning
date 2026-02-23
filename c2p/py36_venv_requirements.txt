@@ -1,0 +1,19 @@
+﻿pandas
+numpy
+scikit-learn
+logging
+datetime
+keras 2.4.3
+xgboost 1.1.1
+matplotlib
+seaborn
+scipy
+requests
+pyspark 2.2.0
+sqlalchemy
+pyodbc
+xlrd
+mlxtend
+json
+pickle
+
