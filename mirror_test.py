@@ -173,29 +173,52 @@ else:
 ##### =----- Architectural Context -----
 # PBM Semantic Matching Architecture (Two-Tower Model)
 
+
+# PBM Semantic Vector Retrieval Architecture (Two-Tower Model)
+
 ## 1. Project Objective
-Build a vector-based recommendation engine that maps raw, historical pharmacy claims (Tower 2) to their governing XML plan design rules (Tower 1) using GCP Vertex AI `text-embedding-005` and Cosine Similarity. 
+Build an AI-driven vector recommendation engine that maps historical pharmacy claims behavior to their governing XML plan design rules. We are translating complex tabular database math into natural language, and using GCP Vertex AI (`text-embedding-005`) to match them in a 768-dimensional latent vector space using Cosine Similarity.
 
-## 2. System Architecture
+---
 
-### Tower 1: The Rule Space (COMPLETED & FROZEN)
-* **Input:** PBM Plan Design XML files.
-* **Process:** Parsed into highly dense, token-efficient natural language paragraphs preserving the hierarchy.
-* **Example Output Format:** "[cvsBenefitContainer > benefitClientAndPlanDetails > general] attributes: retail high dollar is 5000, home delivery high dollar is 5000."
-* **State:** Embedded and saved as `crx_embedded_plans.csv`.
+## 2. Tower 1: The Rule Space (Ground Truth)
+**Status: COMPLETED & FROZEN**
 
-### Tower 2: The Claims Space (CURRENT FOCUS)
-* **Input:** Tabular paid and rejected pharmacy claims (~250 columns).
-* **Process:** Aggregated dynamically by `XREF_PLAN_CODE` to extract the statistical behavioral fingerprint of the plan.
-* **The Goal:** The output text MUST act as a "Semantic Bridge." It must translate tabular database math into the exact business language used in Tower 1 so the vector embeddings align.
+**Objective:** Parse highly nested PBM Plan Design XML files into token-efficient, dense semantic paragraphs that an LLM embedding model can accurately map to vector space.
+* **Input:** Raw XML files containing thousands of tags detailing plan rules (Deductibles, OOP Max, Tiered Copays, Days Supply, Utilization Management).
+* **Engineering Logic:**
+  * Uses recursive traversal to flatten the XML tree.
+  * Employs "Sibling Grouping" to prevent token bloat (combining child nodes under a single parent path declaration).
+  * Uses a "Breadcrumb" path format to strictly preserve the exact XML lineage without writing conversational filler.
+* **Example Output Text:** `[cvsBenefitContainer > benefitClientAndPlanDetails > general] attributes: retail high dollar is 5000, home delivery high dollar is 5000. [cvsBenefitContainer > benefitVersionDetails > costShareNetwork] attributes: tier 1 copay is 10.0, tier 2 copay is 30.0.`
+* **Output Artifact:** `crx_embedded_plans.csv` containing `plan_id`, `semantic_text`, and `plan_embedding`.
 
-## 3. Current Architectural Flaw (Semantic Collapse)
-Tower 2 is currently failing the vector similarity test (0% accuracy). 
-* **The Cause:** Tower 2 is generating internal database noise (e.g., "Pharmacy Price Schd Name is PCMX014662", "Dea Code is 0"). The Vertex AI embedding model cannot mathematically map internal schedule names to the business rules in Tower 1 (e.g., "formulary is CA Select").
-* **The Fix:** We must ruthlessly prune operational noise and system keys from Tower 2. We only want mathematical behavior (Deductible limits, OOP limits, Tiered Copay modes, Days Supply limits, and strict utilization flags).
+---
 
-## 4. Strict Coding Directives for Tower 2
-When writing or modifying the `generate_claims_semantic_text` function:
-1. **No System Keys:** Never append schedule names, list IDs, or operational transaction flags (e.g., compound codes, DEA codes).
-2. **Declarative Business Tone:** Write simple, mathematical sentences. (e.g., "The observed individual deductible max is 1500. For tier 1, the most frequent copay is 10.0.")
-3. **Graceful Omission:** If an aggregation returns `NaN`, `None`, or an empty string, completely omit that metric from the final string. Do not write "is nan".
+## 3. Tower 2: The Claims Space (Current Engineering Focus)
+**Status: IN PROGRESS / DEBUGGING**
+
+**Objective:** Process ~250 columns of raw, tabular pharmacy claims (both paid and rejected), group them by `FINAL_PLAN_CODE`, and calculate statistical aggregates. These aggregates must be serialized into a natural language "Semantic Fingerprint" that perfectly mimics the vocabulary of Tower 1.
+* **Input:** Historical claims data where all columns are currently typed as `Char` (strings).
+* **Engineering Logic:**
+  * **Safe Casting:** Dynamically identify financial columns (`Amount`, `Cost`, `DED`, `OOP`) and safely cast them to `float`, coercing errors to `NaN`.
+  * **Paid Claims Math:** Calculate the `max()` for continuous accumulators (Deductibles/OOP) and the `mode()` for categorical financials (Tiered Copays, Days Supply limits).
+  * **Rejected Claims Math:** Calculate frequency distributions for rejection codes (e.g., Prior Auth, DAW penalties, Specialty restrictions).
+  * **Graceful Omission (CRITICAL):** If an aggregation returns `NaN`, `None`, or an empty string, the metric MUST be completely omitted from the text generation. Do not output strings like "is nan" or "0.0".
+* **The "Semantic Bridge" Rule:** The output text must strictly focus on declarative plan design math. NEVER include operational transaction noise (e.g., 'Claim Sequence', 'NPI_ID') or internal database keys (e.g., 'Pharmacy Price Schd Name is PCMX014662'). The embedding model cannot match internal DB keys to XML business rules.
+* **Output Artifact:** `crx_ibc_model.csv` containing `xref_plan_code`, `claims_semantic_text`, and `claims_semantic_embeddings`.
+
+---
+
+## 4. The Mirror Test (Validation & Evaluation)
+**Status: FAILING (Currently 0% Accuracy due to Semantic Collapse)**
+
+**Objective:** The Mirror Test is our strict validation script. It proves whether the Tower 2 claims embeddings successfully map back to their exact Tower 1 XML embeddings. 
+* **The Mechanism:** 1. Loads the 768-dimensional float arrays from both CSVs.
+  2. Uses `sklearn.metrics.pairwise.cosine_similarity` to perform a matrix multiplication, comparing every claims vector against every XML vector.
+  3. Sorts the similarity scores in descending order to find the Top-K closest matches.
+* **Accuracy Metrics:**
+  * **Top-1 Match:** The true `xref_plan_code` from Tower 2 is the absolute #1 highest cosine similarity score in Tower 1.
+  * **Top-3 Match:** The true plan ID appears in the top 3 highest scores.
+* **Why it is currently failing:** The textual vocabulary between the two towers is completely misaligned. Tower 1 speaks in business rules ("retail high dollar is 5000"). Tower 2 is currently outputting database noise ("Affiliation Code 00039 (32%)"). 
+* **Goal for VS Code AI:** Refactor Tower 2's text generation to strip the noise and output clean, mathematically dense sentences so the Cosine Similarity Mirror Test achieves >80% Top-3 accuracy.
