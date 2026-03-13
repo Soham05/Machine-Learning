@@ -168,3 +168,34 @@ else:
     # Find the score for the actual correct plan
     correct_plan_idx = plans_df.index[plans_df['plan_id'] == test_id].tolist()[0]
     print(f"Score for the CORRECT plan ({test_id}): {similarities[correct_plan_idx]:.4f}")
+
+
+##### =----- Architectural Context -----
+# PBM Semantic Matching Architecture (Two-Tower Model)
+
+## 1. Project Objective
+Build a vector-based recommendation engine that maps raw, historical pharmacy claims (Tower 2) to their governing XML plan design rules (Tower 1) using GCP Vertex AI `text-embedding-005` and Cosine Similarity. 
+
+## 2. System Architecture
+
+### Tower 1: The Rule Space (COMPLETED & FROZEN)
+* **Input:** PBM Plan Design XML files.
+* **Process:** Parsed into highly dense, token-efficient natural language paragraphs preserving the hierarchy.
+* **Example Output Format:** "[cvsBenefitContainer > benefitClientAndPlanDetails > general] attributes: retail high dollar is 5000, home delivery high dollar is 5000."
+* **State:** Embedded and saved as `crx_embedded_plans.csv`.
+
+### Tower 2: The Claims Space (CURRENT FOCUS)
+* **Input:** Tabular paid and rejected pharmacy claims (~250 columns).
+* **Process:** Aggregated dynamically by `XREF_PLAN_CODE` to extract the statistical behavioral fingerprint of the plan.
+* **The Goal:** The output text MUST act as a "Semantic Bridge." It must translate tabular database math into the exact business language used in Tower 1 so the vector embeddings align.
+
+## 3. Current Architectural Flaw (Semantic Collapse)
+Tower 2 is currently failing the vector similarity test (0% accuracy). 
+* **The Cause:** Tower 2 is generating internal database noise (e.g., "Pharmacy Price Schd Name is PCMX014662", "Dea Code is 0"). The Vertex AI embedding model cannot mathematically map internal schedule names to the business rules in Tower 1 (e.g., "formulary is CA Select").
+* **The Fix:** We must ruthlessly prune operational noise and system keys from Tower 2. We only want mathematical behavior (Deductible limits, OOP limits, Tiered Copay modes, Days Supply limits, and strict utilization flags).
+
+## 4. Strict Coding Directives for Tower 2
+When writing or modifying the `generate_claims_semantic_text` function:
+1. **No System Keys:** Never append schedule names, list IDs, or operational transaction flags (e.g., compound codes, DEA codes).
+2. **Declarative Business Tone:** Write simple, mathematical sentences. (e.g., "The observed individual deductible max is 1500. For tier 1, the most frequent copay is 10.0.")
+3. **Graceful Omission:** If an aggregation returns `NaN`, `None`, or an empty string, completely omit that metric from the final string. Do not write "is nan".
