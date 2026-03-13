@@ -106,3 +106,65 @@ if __name__ == "__main__":
     # Run the pipeline
     plans_dataframe, claims_dataframe = load_and_parse_data(PLANS_CSV, CLAIMS_CSV)
     detailed_results = execute_mirror_test(plans_dataframe, claims_dataframe, top_k=3)
+
+
+
+
+#### --------- Diagnostics ---------- ####
+import pandas as pd
+import numpy as np
+import ast
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Load data
+plans_df = pd.read_csv("crx_embedded_plans.csv")
+claims_df = pd.read_csv("crx_ibc_model.csv")
+
+# Clean IDs
+plans_df['plan_id'] = plans_df['plan_id'].astype(str).str.strip().str.upper()
+claims_df['xref_plan_code'] = claims_df['xref_plan_code'].astype(str).str.strip().str.upper()
+
+# 1. THE ID OVERLAP CHECK
+xml_plans = set(plans_df['plan_id'].unique())
+claim_plans = set(claims_df['xref_plan_code'].unique())
+overlap = xml_plans.intersection(claim_plans)
+
+print("="*50)
+print(f"Total Unique XML Plans: {len(xml_plans)}")
+print(f"Total Unique Claims Plans: {len(claim_plans)}")
+print(f"ACTUAL OVERLAP (Plans in both files): {len(overlap)}")
+print("="*50)
+
+if len(overlap) == 0:
+    print("\nFATAL ERROR: There are no matching Plan IDs between your two files.")
+    print(f"Sample XML IDs: {list(xml_plans)[:3]}")
+    print(f"Sample Claim IDs: {list(claim_plans)[:3]}")
+else:
+    # 2. THE SEMANTIC GAP CHECK
+    test_id = list(overlap)[0]
+    
+    xml_text = plans_df[plans_df['plan_id'] == test_id]['semantic_text'].iloc[0]
+    claim_text = claims_df[claims_df['xref_plan_code'] == test_id]['claims_semantic_text'].iloc[0]
+    
+    print(f"\n--- SIDE-BY-SIDE COMPARISON FOR PLAN: {test_id} ---")
+    print("\n[TOWER 1: XML TEXT]")
+    print(xml_text[:500] + "..." if len(xml_text) > 500 else xml_text)
+    
+    print("\n[TOWER 2: CLAIMS TEXT]")
+    print(claim_text[:500] + "..." if len(claim_text) > 500 else claim_text)
+
+    # 3. THE SCORE COLLAPSE CHECK
+    plans_df['plan_embedding'] = plans_df['plan_embedding'].apply(lambda x: np.array(ast.literal_eval(x)))
+    claims_df['claims_semantic_embeddings'] = claims_df['claims_semantic_embeddings'].apply(lambda x: np.array(ast.literal_eval(x)))
+    
+    plan_matrix = np.stack(plans_df['plan_embedding'].values)
+    claim_vector = claims_df[claims_df['xref_plan_code'] == test_id]['claims_semantic_embeddings'].values[0].reshape(1, -1)
+    
+    similarities = cosine_similarity(claim_vector, plan_matrix)[0]
+    print("\n[SIMILARITY SCORE DISTRIBUTION]")
+    print(f"Highest Score to ANY plan: {np.max(similarities):.4f}")
+    print(f"Lowest Score to ANY plan: {np.min(similarities):.4f}")
+    
+    # Find the score for the actual correct plan
+    correct_plan_idx = plans_df.index[plans_df['plan_id'] == test_id].tolist()[0]
+    print(f"Score for the CORRECT plan ({test_id}): {similarities[correct_plan_idx]:.4f}")
