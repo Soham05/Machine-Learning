@@ -1,0 +1,20 @@
+Act as a Principal UX Engineer at a top-tier SaaS company. We need to refactor a data-heavy, single-page application into a sophisticated, executive-friendly SaaS platform. Retain the current functionality, sans-serif typography, and the existing color palette (clean white/gray backgrounds, dark text, with deep red accents for primary actions).
+Implement the following UX/UI architecture using modern design principles (e.g., Tailwind CSS utility classes or equivalent UI library styling):
+**1. Global Layout & Styling**
+ * Transition from a single-column, infinite-scroll layout to a modular Dashboard Layout with a persistent side navigation or top navigation bar (tabs for "Inference Engine", "Recommendations", "Benefit Workspace").
+ * Use a very light gray background (bg-gray-50) for the main application canvas.
+ * Wrap distinct sections into clean white cards (bg-white) with subtle borders (border-gray-200), soft shadows (shadow-sm), and rounded corners (rounded-lg or rounded-xl).
+ * Ensure ample padding (p-6 or p-8) within cards to increase whitespace, readability, and reduce cognitive load.
+**2. Section: Inference Engine (Upload & Run)**
+ * **Upload Claims Data:** Transform this into a modern drag-and-drop styled dropzone. Group the "Demo sample" vs "Full holdout" selection into a clean pill-shaped toggle or stylized card-based radio buttons.
+ * **Configure and Run Inference:** Hide the technical sliders ("Batch Size", "Stage-1 Rerank Weight", "Top-K Recommendations") and boolean checkboxes behind an "Advanced Configuration" accordion or modal. Keep the interface clean by default for executive viewing.
+ * **Call to Action:** Make the "Run Inference" button the undeniable focal point. Use the existing red brand color but apply modern button styling (subtle shadow, hover state, clear bold text, perhaps an icon).
+**3. Section: Review Recommendations**
+ * **KPI Banner:** Place the key metrics ("Total Claims Scored", "Total Recommendations", "Recommendation Format") at the very top in a horizontal row of distinct, high-contrast metric cards. Make the numbers visually dominant.
+ * **Filters:** Consolidate the "Minimum Match %" slider, slot filters, and search bar into a dedicated, clean filter bar positioned immediately above the table.
+ * **Data Table:** Upgrade the grid to a modern SaaS data table. Include a sticky header with subtle borders. Implement row-hover states (hover:bg-gray-50). Convert the "Match %" column values into visual progress bars or color-coded status badges (e.g., green for >80%, yellow for 50-79%) to allow executives to visually scan performance instantly.
+**4. Section: Benefit Workspace (Explore & Build)**
+ * **Layout Shift:** Instead of stacking the "Plan Recommendation Snapshot" and "Inspect XML" sections vertically, implement a side-by-side or master-detail layout. Place the claim/plan selector on the left (master) and the detailed XML/tag inspection on the right (detail pane).
+ * **Tabs:** Modernize the tabs ("Explore Benefits", "Compare Recommended Benefits", "Build Custom Benefit") with clear visual active states (e.g., a bold text state with a red bottom border).
+ * **Technical Data Display:** For the XML inspection and Top-Level Section Counts, use a dedicated, slightly tinted container (bg-slate-50) with a monospaced font for the raw tags/code. This visually separates the highly technical data from the executive summary data.
+Update the UI code to reflect these architectural and styling changes while strictly maintaining all existing data bindings, component logic, and routing.
