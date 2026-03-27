@@ -18,3 +18,21 @@ Implement the following UX/UI architecture using modern design principles (e.g.,
  * **Tabs:** Modernize the tabs ("Explore Benefits", "Compare Recommended Benefits", "Build Custom Benefit") with clear visual active states (e.g., a bold text state with a red bottom border).
  * **Technical Data Display:** For the XML inspection and Top-Level Section Counts, use a dedicated, slightly tinted container (bg-slate-50) with a monospaced font for the raw tags/code. This visually separates the highly technical data from the executive summary data.
 Update the UI code to reflect these architectural and styling changes while strictly maintaining all existing data bindings, component logic, and routing.
+
+
+
+
+
+### Headings Enhancement
+The current headings lack the typographic hierarchy needed for an executive-grade dashboard. They blend in with the body text.
+ * **Increase Size and Weight:** Upgrade section headers (Inference Engine, Recommendations, Benefit Workspace) to a much larger size and heavier weight (e.g., text-3xl font-extrabold tracking-tight text-gray-900).
+ * **Remove the "Step" Pills:** The "Step 1", "Step 2" pills make the platform feel like a simple wizard rather than a robust workspace. Remove them to elevate the perceived complexity and capability of the tool.
+ * **Add an Anchor:** Introduce a subtle, 2px bottom border under the main headers, or use the brand red as a left-border accent (border-l-4 border-red-700 pl-3) to clearly demarcate the start of a new major zone.
+### Elevating the Benefit Workspace (The MVP)
+Currently, the Benefit Workspace looks like just another sequential step. To position it as the core value proposition for pharmacy benefit management, it needs to dominate the visual hierarchy.
+ * **Create a Visual Break:** Instead of letting it flow continuously on the same gray background, wrap the entire Benefit Workspace in a massive, edge-to-edge white container (bg-white border-t border-gray-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]). This signals to the user: "You have arrived at the main application."
+ * **Supersize the Navigation:** The tabs ("Explore Benefits", "Compare Benefits", "Build Custom Benefit") are too small. Convert them into a large, segmented control panel or prominent folder-style tabs. The active tab should have a bold red underline and bolder text.
+ * **Elevate the Comparison KPIs:** The metrics inside the Comparison Studio ("Common Paths", "Only in A", etc.) are getting lost. Apply the exact same high-contrast, bold styling to these boxes as you used for the "25,000 CLAIMS SCORED" KPI cards above. They should look like critical business metrics.
+ * **Highlight the "Build" Action:** If "Build Custom Benefit" is the ultimate goal, ensure that tab or any primary action button within it uses a solid, high-contrast fill (like the "Run Inference" button) rather than just being a text link.
+Would you like the specific CSS/Tailwind utility classes to implement the visual break and header upgrades?
+
